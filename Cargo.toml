@@ -1,0 +1,9 @@
+[package]
+name = "no_std_io"
+version = "0.1.0"
+authors = ["zaksabeast <19464008+zaksabeast@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+safe-transmute = { version = "0.11", default-features = false }
+snafu = { version = "0.6.10", default-features = false }

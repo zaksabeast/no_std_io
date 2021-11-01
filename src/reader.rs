@@ -21,7 +21,7 @@ pub trait Reader {
         if data.len() < offset_end {
             return Err(Error::InvalidSize {
                 wanted_size: result_size,
-                available_size: data.len(),
+                available_size: data.len() - offset,
             });
         }
 

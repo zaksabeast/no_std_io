@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-#[derive(Debug, Snafu)]
+#[derive(Debug, PartialEq, Snafu)]
 pub enum Error {
     #[snafu(display(
         "Invalid size, wanted: {}, available: {} ",

@@ -96,3 +96,254 @@ pub trait Reader {
         self.read_be(offset).unwrap_or_default()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    pub struct MockReader {
+        bytes: [u8; 8],
+    }
+
+    impl MockReader {
+        fn new(bytes: [u8; 8]) -> Self {
+            Self { bytes }
+        }
+    }
+
+    impl Reader for MockReader {
+        fn get_slice(&self) -> &[u8] {
+            &self.bytes
+        }
+    }
+
+    mod get_sized_slice {
+        use super::*;
+
+        #[test]
+        fn should_return_sized_slice() {
+            let reader = MockReader::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let slice = reader
+                .get_sized_slice::<u32>(4)
+                .expect("Read should have been successful.");
+
+            let result = [5, 6, 7, 8];
+            assert_eq!(slice, result);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let error = reader
+                .get_sized_slice::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    available_size: 2
+                }
+            );
+        }
+    }
+
+    mod get_transmutable {
+        use super::*;
+
+        #[test]
+        fn should_return_a_reference() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x11223344aabbccdd));
+            let slice = reader
+                .get_sized_slice::<u32>(4)
+                .expect("Read should have been successful.");
+
+            let result = u32::to_ne_bytes(0x11223344);
+            assert_eq!(slice, &result);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x11223344aabbccdd));
+            let error = reader
+                .get_sized_slice::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    available_size: 2
+                }
+            );
+        }
+    }
+
+    mod read {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x1122334411223344));
+            let value = reader
+                .read::<u32>(4)
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, 0x11223344);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x1122334411223344));
+            let error = reader
+                .read::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    available_size: 2
+                }
+            );
+        }
+
+        #[test]
+        fn should_return_error_if_alignment_is_invalid() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x1122334411223344));
+            let error = reader
+                .read::<u32>(3)
+                .expect_err("Alignment should have been invalid");
+
+            assert_eq!(
+                error,
+                Error::InvalidAlignment {
+                    wanted_size: 4,
+                    source_size: 4,
+                    source_offset: 3,
+                }
+            );
+        }
+    }
+
+    mod default_read {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x11223344aabbccdd));
+            let value = reader.default_read::<u32>(4);
+            assert_eq!(value, 0x11223344);
+        }
+
+        #[test]
+        fn should_return_default_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x11223344aabbccdd));
+            let value = reader.default_read::<u32>(6);
+            assert_eq!(value, u32::default());
+        }
+
+        #[test]
+        fn should_return_default_if_alignment_is_invalid() {
+            let reader = MockReader::new(u64::to_ne_bytes(0x11223344aabbccdd));
+            let value = reader.default_read::<u32>(3);
+            assert_eq!(value, u32::default());
+        }
+    }
+
+    mod read_le {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_le::<u32>(4)
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, 0xddccbbaa);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let error = reader
+                .read_le::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    available_size: 2
+                }
+            );
+        }
+    }
+
+    mod default_read_le {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_le::<u32>(4);
+            assert_eq!(value, 0xddccbbaa);
+        }
+
+        #[test]
+        fn should_return_default_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_le::<u32>(6);
+            assert_eq!(value, u32::default());
+        }
+    }
+
+    mod read_be {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_be::<u32>(4)
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, 0xaabbccdd);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let error = reader
+                .read_be::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    available_size: 2
+                }
+            );
+        }
+    }
+
+    mod default_read_be {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_be::<u32>(4);
+            assert_eq!(value, 0xaabbccdd);
+        }
+
+        #[test]
+        fn should_return_default_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_be::<u32>(6);
+            assert_eq!(value, u32::default());
+        }
+    }
+}

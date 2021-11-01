@@ -93,7 +93,7 @@ pub trait Reader {
     /// that explicitly defines little endian.
     fn read_le<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
         let bytes = self.get_sized_slice::<T>(offset)?;
-        Ok(T::read_le(&bytes))
+        Ok(T::read_le(bytes))
     }
 
     /// Same as [Reader::read_le], but returns a default value if the read is invalid.
@@ -112,7 +112,7 @@ pub trait Reader {
     /// that explicitly defines little endian.
     fn read_be<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
         let bytes = self.get_sized_slice::<T>(offset)?;
-        Ok(T::read_be(&bytes))
+        Ok(T::read_be(bytes))
     }
 
     /// Same as [Reader::read_be], but returns a default value if the read is invalid.

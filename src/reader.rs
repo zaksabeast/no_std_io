@@ -81,7 +81,7 @@ pub trait Reader {
     ///
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
-    /// that explicitly defines little endian.
+    /// that explicitly defines big endian.
     fn read_be<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
         let bytes = self.get_sized_slice::<T>(offset)?;
         Ok(T::read_be(bytes))
@@ -91,7 +91,7 @@ pub trait Reader {
     ///
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
-    /// that explicitly defines little endian.
+    /// that explicitly defines big endian.
     fn default_read_be<T: EndianRead + Default>(&self, offset: usize) -> T {
         self.read_be(offset).unwrap_or_default()
     }

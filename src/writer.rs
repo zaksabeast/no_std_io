@@ -43,10 +43,21 @@ pub trait Writer {
         Ok(length)
     }
 
+    /// Same as [Writer::write_bytes], but checks to make sure the bytes can safely be written to the offset.
+    /// Returns 0 as the write size if the bytes won't fit into the offset.
+    fn checked_write_bytes(&mut self, offset: usize, bytes: &[u8]) -> usize {
+        self.write_bytes(offset, bytes).unwrap_or(0)
+    }
+
     /// Same as [Writer::write_bytes], but writes a [TriviallyTransmutable] type by converting it to bytes.
     fn write<T: TriviallyTransmutable>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = transmute_one_to_bytes(value);
         self.write_bytes(offset, bytes)
+    }
+
+    /// Same as [Writer::checked_write_bytes], but writes a [TriviallyTransmutable] type by converting it to bytes.
+    fn checked_write<T: TriviallyTransmutable>(&mut self, offset: usize, value: &T) -> usize {
+        self.write(offset, value).unwrap_or(0)
     }
 
     /// Writes a value in its little endian representation.
@@ -54,10 +65,16 @@ pub trait Writer {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
-    fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<()> {
+    fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_type_sized_mut_slice::<T>(offset)?;
         T::write_le(value, bytes);
-        Ok(())
+        Ok(bytes.len())
+    }
+
+    /// Same as [Writer::write_le], but checks to make sure the bytes can safely be written to the offset.
+    /// Returns 0 as the write size if the bytes won't fit into the offset.
+    fn checked_write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> usize {
+        self.write_le(offset, value).unwrap_or(0)
     }
 
     /// Writes a value in its big endian representation.
@@ -65,10 +82,16 @@ pub trait Writer {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
-    fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<()> {
+    fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_type_sized_mut_slice::<T>(offset)?;
         T::write_be(value, bytes);
-        Ok(())
+        Ok(bytes.len())
+    }
+
+    /// Same as [Writer::write_be], but checks to make sure the bytes can safely be written to the offset.
+    /// Returns 0 as the write size if the bytes won't fit into the offset.
+    fn checked_write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> usize {
+        self.write_be(offset, value).unwrap_or(0)
     }
 }
 
@@ -200,6 +223,33 @@ mod test {
         }
     }
 
+    mod checked_write_bytes {
+        use super::*;
+
+        #[test]
+        fn should_write_bytes() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let bytes = [0xaa, 0xbb, 0xcc, 0xdd];
+            let written_length = writer.checked_write_bytes(2, &bytes);
+
+            assert_eq!(written_length, 4);
+
+            let inner = writer.get_bytes();
+            assert_eq!(inner, [1, 2, 0xaa, 0xbb, 0xcc, 0xdd, 7, 8]);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let initial_bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(initial_bytes.clone());
+            let bytes_to_write = [0xaa, 0xbb, 0xcc, 0xdd];
+            let written_length = writer.checked_write_bytes(6, &bytes_to_write);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), initial_bytes);
+        }
+    }
+
     mod write {
         use super::*;
 
@@ -235,6 +285,33 @@ mod test {
         }
     }
 
+    mod checked_write {
+        use super::*;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write(4, &value);
+
+            assert_eq!(written_length, 4);
+
+            let result = writer.read::<u32>(4).expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(bytes.clone());
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write(6, &value);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), bytes);
+        }
+    }
+
     mod write_le {
         use super::*;
 
@@ -242,9 +319,11 @@ mod test {
         fn should_write_value() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
             let value = 0xaabbccddu32;
-            writer
+            let written_length = writer
                 .write_le(2, &value)
                 .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
 
             let result = writer
                 .read_le::<u32>(2)
@@ -270,6 +349,35 @@ mod test {
         }
     }
 
+    mod checked_write_le {
+        use super::*;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write_le(2, &value);
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_le::<u32>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(bytes.clone());
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write_le(6, &value);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), bytes);
+        }
+    }
+
     mod write_be {
         use super::*;
 
@@ -277,9 +385,11 @@ mod test {
         fn should_write_value() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
             let value = 0xaabbccddu32;
-            writer
+            let written_length = writer
                 .write_be(2, &value)
                 .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
 
             let result = writer
                 .read_be::<u32>(2)
@@ -302,6 +412,35 @@ mod test {
                     available_size: 2
                 }
             );
+        }
+    }
+
+    mod checked_write_be {
+        use super::*;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write_be(2, &value);
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_be::<u32>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(bytes.clone());
+            let value = 0xaabbccddu32;
+            let written_length = writer.checked_write_be(6, &value);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), bytes);
         }
     }
 }

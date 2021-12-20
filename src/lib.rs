@@ -14,3 +14,6 @@ pub use error::*;
 
 mod endian;
 pub use endian::*;
+
+mod stream;
+pub use stream::*;

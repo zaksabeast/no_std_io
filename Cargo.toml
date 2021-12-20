@@ -7,3 +7,7 @@ edition = "2018"
 [dependencies]
 safe-transmute = { version = "0.11", default-features = false }
 snafu = { version = "0.6.10", default-features = false }
+
+[features]
+default = ["alloc"]
+alloc = []

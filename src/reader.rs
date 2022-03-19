@@ -129,6 +129,12 @@ pub trait Reader {
     }
 }
 
+impl<const SIZE: usize> Reader for [u8; SIZE] {
+    fn get_slice(&self) -> &[u8] {
+        self
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

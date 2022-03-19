@@ -17,3 +17,6 @@ pub use endian::*;
 
 mod stream;
 pub use stream::*;
+
+mod stream_container;
+pub use stream_container::*;

@@ -135,6 +135,12 @@ impl<const SIZE: usize> Reader for [u8; SIZE] {
     }
 }
 
+impl Reader for &[u8] {
+    fn get_slice(&self) -> &[u8] {
+        self
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl Reader for Vec<u8> {
     fn get_slice(&self) -> &[u8] {

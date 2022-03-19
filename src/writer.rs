@@ -104,6 +104,12 @@ impl<const SIZE: usize> Writer for [u8; SIZE] {
     }
 }
 
+impl Writer for &mut [u8] {
+    fn get_mut_slice(&mut self) -> &mut [u8] {
+        self
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl Writer for Vec<u8> {
     fn get_mut_slice(&mut self) -> &mut [u8] {

@@ -1,11 +1,11 @@
 use crate::{Cursor, Reader, Writer};
 
-pub struct StreamContainer<T: Reader + Writer> {
+pub struct StreamContainer<T: Reader> {
     raw: T,
     cursor: usize,
 }
 
-impl<T: Reader + Writer> StreamContainer<T> {
+impl<T: Reader> StreamContainer<T> {
     pub fn new(raw: T) -> Self {
         Self { raw, cursor: 0 }
     }
@@ -15,7 +15,7 @@ impl<T: Reader + Writer> StreamContainer<T> {
     }
 }
 
-impl<T: Reader + Writer> Reader for StreamContainer<T> {
+impl<T: Reader> Reader for StreamContainer<T> {
     fn get_slice(&self) -> &[u8] {
         self.raw.get_slice()
     }
@@ -27,7 +27,7 @@ impl<T: Reader + Writer> Writer for StreamContainer<T> {
     }
 }
 
-impl<T: Reader + Writer> Cursor for StreamContainer<T> {
+impl<T: Reader> Cursor for StreamContainer<T> {
     fn get_index(&self) -> usize {
         self.cursor
     }

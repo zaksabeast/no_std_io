@@ -37,7 +37,7 @@ pub trait StreamWriter: Writer + Cursor {
         self.write_bytes(index, bytes)
     }
 
-    /// Same as [StreamWriter::checked_write_bytes], but does not write if there is not enough space.
+    /// Same as [Writer::checked_write_bytes], but does not write if there is not enough space.
     fn checked_write_stream_bytes(&mut self, bytes: &[u8]) -> usize {
         let index = self.swap_incremented_index(bytes.len());
         self.checked_write_bytes(index, bytes)

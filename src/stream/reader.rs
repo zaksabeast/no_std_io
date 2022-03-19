@@ -35,7 +35,7 @@ pub trait StreamReader: Reader + Cursor {
         self.read_byte_vec(index, size)
     }
 
-    /// Same as [StreamReader::default_read_byte_vec], but returns a default value if the read is invalid.
+    /// Same as [Reader::default_read_byte_vec], but returns a default value if the read is invalid.
     fn default_read_byte_stream(&mut self, size: usize) -> Vec<u8> {
         let index = self.swap_incremented_index(size);
         self.default_read_byte_vec(index, size)

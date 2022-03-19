@@ -1,3 +1,6 @@
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 use super::{EndianWrite, Error};
 use core::mem;
 use safe_transmute::{transmute_one_to_bytes, TriviallyTransmutable};
@@ -98,6 +101,13 @@ pub trait Writer {
 impl<const SIZE: usize> Writer for [u8; SIZE] {
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Writer for Vec<u8> {
+    fn get_mut_slice(&mut self) -> &mut [u8] {
+        self.as_mut_slice()
     }
 }
 

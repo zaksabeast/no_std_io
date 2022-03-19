@@ -135,6 +135,13 @@ impl<const SIZE: usize> Reader for [u8; SIZE] {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl Reader for Vec<u8> {
+    fn get_slice(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

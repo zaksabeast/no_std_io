@@ -141,6 +141,12 @@ impl Reader for &[u8] {
     }
 }
 
+impl Reader for &mut [u8] {
+    fn get_slice(&self) -> &[u8] {
+        self
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl Reader for Vec<u8> {
     fn get_slice(&self) -> &[u8] {

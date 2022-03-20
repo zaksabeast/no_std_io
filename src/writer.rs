@@ -25,7 +25,8 @@ pub trait Writer {
         if data.len() < offset_end {
             return Err(Error::InvalidSize {
                 wanted_size: length,
-                available_size: data.len() - offset,
+                data_len: data.len(),
+                offset,
             });
         }
 
@@ -191,7 +192,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 100,
-                    available_size: 6
+                    offset: 2,
+                    data_len: 8,
                 }
             );
         }
@@ -250,7 +252,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -288,7 +291,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -380,7 +384,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -447,7 +452,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -552,7 +558,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }

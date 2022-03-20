@@ -3,13 +3,15 @@ use snafu::Snafu;
 #[derive(Debug, PartialEq, Snafu)]
 pub enum Error {
     #[snafu(display(
-        "Invalid size, wanted: {}, available: {} ",
+        "Invalid size: wanted 0x{:x} at offset offset: 0x{:x}, but data length is 0x{:x} ",
         wanted_size,
-        available_size
+        offset,
+        data_len
     ))]
     InvalidSize {
         wanted_size: usize,
-        available_size: usize,
+        offset: usize,
+        data_len: usize,
     },
     #[snafu(display(
         "Invalid alignment: wanted size: {}, source size: {}, source offset: {}",

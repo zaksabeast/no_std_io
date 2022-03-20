@@ -102,7 +102,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 0
+                    offset: 8,
+                    data_len: 8,
                 }
             );
         }
@@ -181,7 +182,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 0
+                    offset: 8,
+                    data_len: 8,
                 }
             );
         }
@@ -235,7 +237,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }

@@ -23,7 +23,8 @@ pub trait Reader {
         if data.len() < offset_end {
             return Err(Error::InvalidSize {
                 wanted_size: size,
-                available_size: data.len() - offset,
+                data_len: data.len(),
+                offset,
             });
         }
 
@@ -39,7 +40,8 @@ pub trait Reader {
         if data.len() < offset_end {
             return Err(Error::InvalidSize {
                 wanted_size: result_size,
-                available_size: data.len() - offset,
+                data_len: data.len(),
+                offset,
             });
         }
 
@@ -199,7 +201,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -230,7 +233,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -261,7 +265,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -291,7 +296,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -363,7 +369,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -411,7 +418,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }
@@ -459,7 +467,8 @@ mod test {
                 error,
                 Error::InvalidSize {
                     wanted_size: 4,
-                    available_size: 2
+                    offset: 6,
+                    data_len: 8,
                 }
             );
         }

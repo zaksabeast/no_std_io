@@ -122,10 +122,10 @@ impl Writer for Vec<u8> {
 
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         let offset_end = offset + length;
-        let grow_size = offset_end - self.len();
+        let data_len = self.len();
 
-        if grow_size > 0 {
-            self.resize(grow_size, 0);
+        if offset_end > data_len {
+            self.resize(offset_end - data_len, 0);
         }
 
         let slice = self.get_mut_slice();
@@ -221,6 +221,19 @@ mod test {
             let expected_result = [0; 4];
             assert_eq!(result, expected_result);
             assert_eq!(writer.len(), 4);
+        }
+
+        #[test]
+        fn should_not_not_error_if_vector_size_is_larger_than_write_size() {
+            let mut writer: Vec<u8> = vec![0; 10];
+
+            let result = writer
+                .get_sized_mut_slice(2, 4)
+                .expect("Should have succeeded");
+
+            let expected_result = [0; 4];
+            assert_eq!(result, expected_result);
+            assert_eq!(writer.len(), 10);
         }
     }
 

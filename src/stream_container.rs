@@ -80,4 +80,16 @@ mod test {
         stream.checked_write_stream_bytes(&[0xaa, 0xbb, 0xcc, 0xdd]);
         assert_eq!(stream.into_raw(), [0xaa, 0xbb, 0xcc, 0xdd]);
     }
+
+    #[test]
+    fn should_grow_a_vector_if_needed_and_written_to_twice() {
+        let data = vec![0; 4];
+        let mut stream = StreamContainer::new(data);
+        stream.checked_write_stream_bytes(&[0xaa, 0xbb, 0xcc, 0xdd]);
+        stream.checked_write_stream_bytes(&[0xaa, 0xbb, 0xcc, 0xdd]);
+        assert_eq!(
+            stream.into_raw(),
+            [0xaa, 0xbb, 0xcc, 0xdd, 0xaa, 0xbb, 0xcc, 0xdd]
+        );
+    }
 }

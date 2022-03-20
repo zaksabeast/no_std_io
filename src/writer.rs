@@ -125,7 +125,7 @@ impl Writer for Vec<u8> {
         let data_len = self.len();
 
         if offset_end > data_len {
-            self.resize(offset_end - data_len, 0);
+            self.resize(offset_end, 0);
         }
 
         let slice = self.get_mut_slice();
@@ -331,6 +331,24 @@ mod test {
 
             assert_eq!(writer, vec![0xaa, 0xbb, 0xcc, 0xdd]);
             assert_eq!(writer.len(), 4);
+        }
+
+        #[test]
+        fn should_grow_a_vector_if_needed_and_written_to_twice() {
+            let mut writer = vec![];
+            let bytes = [0xaa, 0xbb, 0xcc, 0xdd];
+            let written_length = writer
+                .write_bytes(0, &bytes)
+                .expect("Write should have succeeded");
+            assert_eq!(written_length, 4);
+
+            let written_length = writer
+                .write_bytes(4, &bytes)
+                .expect("Write should have succeeded");
+            assert_eq!(written_length, 4);
+
+            assert_eq!(writer, vec![0xaa, 0xbb, 0xcc, 0xdd, 0xaa, 0xbb, 0xcc, 0xdd]);
+            assert_eq!(writer.len(), 8);
         }
     }
 

@@ -41,14 +41,11 @@ impl<T: Reader> Cursor for StreamContainer<T> {
 mod test {
     use super::*;
     use crate::StreamReader;
+    use alloc::vec;
 
-    #[cfg(feature = "alloc")]
-    use alloc::{vec, vec::Vec};
-
-    #[cfg(feature = "alloc")]
     #[test]
     fn should_work_with_vectors() {
-        let data: Vec<u8> = vec![0xaa, 0xbb, 0xcc, 0xdd];
+        let data = vec![0xaa, 0xbb, 0xcc, 0xdd];
         StreamContainer::new(data).default_read_stream::<u32>();
     }
 

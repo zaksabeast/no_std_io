@@ -167,7 +167,6 @@ mod test {
     mod get_sized_mut_slice {
         use super::*;
 
-        #[cfg(feature = "alloc")]
         use alloc::{vec, vec::Vec};
 
         #[test]
@@ -198,7 +197,6 @@ mod test {
             );
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_grow_a_vector_if_needed() {
             let mut writer: Vec<u8> = vec![];
@@ -212,7 +210,6 @@ mod test {
             assert_eq!(writer.len(), 6);
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_not_grow_a_vector_if_not_needed() {
             let mut writer: Vec<u8> = vec![0; 4];
@@ -261,8 +258,6 @@ mod test {
 
     mod write_bytes {
         use super::*;
-
-        #[cfg(feature = "alloc")]
         use alloc::vec;
 
         #[test]
@@ -297,7 +292,6 @@ mod test {
             );
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_grow_a_vector_if_needed() {
             let mut writer = vec![];
@@ -312,7 +306,6 @@ mod test {
             assert_eq!(writer.len(), 6);
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_not_grow_a_vector_if_not_needed() {
             let mut writer = vec![0; 4];
@@ -420,8 +413,6 @@ mod test {
 
     mod write_le {
         use super::*;
-
-        #[cfg(feature = "alloc")]
         use alloc::vec;
 
         #[test]
@@ -458,7 +449,6 @@ mod test {
             );
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_grow_a_vector_if_needed() {
             let mut writer = vec![];
@@ -476,7 +466,6 @@ mod test {
             assert_eq!(writer.len(), 6);
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_not_grow_a_vector_if_not_needed() {
             let mut writer = vec![0; 4];
@@ -526,8 +515,6 @@ mod test {
 
     mod write_be {
         use super::*;
-
-        #[cfg(feature = "alloc")]
         use alloc::vec;
 
         #[test]
@@ -564,7 +551,6 @@ mod test {
             );
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_grow_a_vector_if_needed() {
             let mut writer = vec![];
@@ -582,7 +568,6 @@ mod test {
             assert_eq!(writer.len(), 6);
         }
 
-        #[cfg(feature = "alloc")]
         #[test]
         fn should_not_grow_a_vector_if_not_needed() {
             let mut writer = vec![0; 4];

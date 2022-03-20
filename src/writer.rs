@@ -11,6 +11,9 @@ pub type WriterResult<T> = Result<T, Error>;
 ///
 /// Blanket implementations are provided for byte slices and vectors.
 /// Vectors will grow if there isn't enough space.  If this isn't desirable, use a slice from a vector as the writer.
+///
+/// To forward [Writer] methods to containers with vectors, implement both
+/// [Writer::get_mut_slice] and [Writer::get_sized_mut_slice] instead of only [Writer::get_mut_slice].
 pub trait Writer {
     /// Returns the data to be read from.
     fn get_mut_slice(&mut self) -> &mut [u8];

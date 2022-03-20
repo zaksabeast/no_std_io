@@ -1,5 +1,11 @@
 use crate::{Cursor, Reader, Writer, WriterResult};
 
+/// A convenience container that allows streaming anything that implements [Reader].
+/// The container can also write to anything that implements [Writer], but only [Reader] is needed
+/// to use the container.
+///
+/// To forward streamed [Writer] methods to containers with vectors, implement both [StreamContainer::get_mut_slice]
+/// and [StreamContainer::get_sized_mut_slice] instead of only [StreamContainer::get_mut_slice].
 pub struct StreamContainer<T: Reader> {
     raw: T,
     cursor: usize,

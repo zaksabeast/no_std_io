@@ -8,6 +8,9 @@ use safe_transmute::{transmute_one_to_bytes, TriviallyTransmutable};
 pub type WriterResult<T> = Result<T, Error>;
 
 /// An interface to safely write values to a source.
+///
+/// Blanket implementations are provided for byte slices and vectors.
+/// Vectors will grow if there isn't enough space.  If this isn't desirable, use a slice from a vector as the writer.
 pub trait Writer {
     /// Returns the data to be read from.
     fn get_mut_slice(&mut self) -> &mut [u8];
@@ -115,6 +118,18 @@ impl Writer for Vec<u8> {
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self.as_mut_slice()
     }
+
+    fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
+        let offset_end = offset + length;
+        let grow_size = offset_end - self.len();
+
+        if grow_size > 0 {
+            self.resize(grow_size, 0);
+        }
+
+        let slice = self.get_mut_slice();
+        Ok(&mut slice[offset..offset_end])
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +166,9 @@ mod test {
     mod get_sized_mut_slice {
         use super::*;
 
+        #[cfg(feature = "alloc")]
+        use alloc::{vec, vec::Vec};
+
         #[test]
         fn should_return_mut_slice() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
@@ -176,6 +194,34 @@ mod test {
                     available_size: 6
                 }
             );
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer: Vec<u8> = vec![];
+
+            let result = writer
+                .get_sized_mut_slice(2, 4)
+                .expect("Should have succeeded");
+
+            let expected_result = [0; 4];
+            assert_eq!(result, expected_result);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer: Vec<u8> = vec![0; 4];
+
+            let result = writer
+                .get_sized_mut_slice(0, 4)
+                .expect("Should have succeeded");
+
+            let expected_result = [0; 4];
+            assert_eq!(result, expected_result);
+            assert_eq!(writer.len(), 4);
         }
     }
 
@@ -213,6 +259,9 @@ mod test {
     mod write_bytes {
         use super::*;
 
+        #[cfg(feature = "alloc")]
+        use alloc::vec;
+
         #[test]
         fn should_write_bytes() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
@@ -242,6 +291,36 @@ mod test {
                     available_size: 2
                 }
             );
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer = vec![];
+            let bytes = [0xaa, 0xbb, 0xcc, 0xdd];
+            let written_length = writer
+                .write_bytes(2, &bytes)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            assert_eq!(writer, vec![0, 0, 0xaa, 0xbb, 0xcc, 0xdd]);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer = vec![0; 4];
+            let bytes = [0xaa, 0xbb, 0xcc, 0xdd];
+            let written_length = writer
+                .write_bytes(0, &bytes)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            assert_eq!(writer, vec![0xaa, 0xbb, 0xcc, 0xdd]);
+            assert_eq!(writer.len(), 4);
         }
     }
 
@@ -337,6 +416,9 @@ mod test {
     mod write_le {
         use super::*;
 
+        #[cfg(feature = "alloc")]
+        use alloc::vec;
+
         #[test]
         fn should_write_value() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
@@ -368,6 +450,42 @@ mod test {
                     available_size: 2
                 }
             );
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer = vec![];
+            let value = 0xaabbccddu32;
+            let written_length = writer
+                .write_le(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_le::<u32>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer = vec![0; 4];
+            let value = 0xaabbccddu32;
+            let written_length = writer
+                .write_le(0, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_le::<u32>(0)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+            assert_eq!(writer.len(), 4);
         }
     }
 
@@ -403,6 +521,9 @@ mod test {
     mod write_be {
         use super::*;
 
+        #[cfg(feature = "alloc")]
+        use alloc::vec;
+
         #[test]
         fn should_write_value() {
             let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
@@ -434,6 +555,42 @@ mod test {
                     available_size: 2
                 }
             );
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer = vec![];
+            let value = 0xaabbccddu32;
+            let written_length = writer
+                .write_be(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_be::<u32>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[cfg(feature = "alloc")]
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer = vec![0; 4];
+            let value = 0xaabbccddu32;
+            let written_length = writer
+                .write_be(0, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+
+            let result = writer
+                .read_be::<u32>(0)
+                .expect("Read should have succeeded");
+            assert_eq!(result, 0xaabbccddu32);
+            assert_eq!(writer.len(), 4);
         }
     }
 

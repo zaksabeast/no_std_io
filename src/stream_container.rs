@@ -41,8 +41,11 @@ impl<T: Reader> Cursor for StreamContainer<T> {
 mod test {
     use super::*;
     use crate::StreamReader;
+
+    #[cfg(feature = "alloc")]
     use alloc::{vec, vec::Vec};
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn should_work_with_vectors() {
         let data: Vec<u8> = vec![0xaa, 0xbb, 0xcc, 0xdd];
@@ -51,13 +54,13 @@ mod test {
 
     #[test]
     fn should_work_with_slices() {
-        let data: Vec<u8> = vec![0xaa, 0xbb, 0xcc, 0xdd];
+        let data: [u8; 4] = [0xaa, 0xbb, 0xcc, 0xdd];
         StreamContainer::new(data.as_slice()).default_read_stream::<u32>();
     }
 
     #[test]
     fn should_work_with_mut_slices() {
-        let mut data: Vec<u8> = vec![0xaa, 0xbb, 0xcc, 0xdd];
+        let mut data: [u8; 4] = [0xaa, 0xbb, 0xcc, 0xdd];
         StreamContainer::new(data.as_mut_slice()).default_read_stream::<u32>();
     }
 }

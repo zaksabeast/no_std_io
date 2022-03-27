@@ -11,6 +11,16 @@ pub trait EndianRead: Sized {
     fn read_be(bytes: &[u8]) -> Self;
 }
 
+impl EndianRead for u8 {
+    fn read_le(bytes: &[u8]) -> Self {
+        u8::from_le_bytes(bytes.try_into().unwrap())
+    }
+
+    fn read_be(bytes: &[u8]) -> Self {
+        u8::from_be_bytes(bytes.try_into().unwrap())
+    }
+}
+
 impl EndianRead for u16 {
     fn read_le(bytes: &[u8]) -> Self {
         u16::from_le_bytes(bytes.try_into().unwrap())
@@ -18,6 +28,16 @@ impl EndianRead for u16 {
 
     fn read_be(bytes: &[u8]) -> Self {
         u16::from_be_bytes(bytes.try_into().unwrap())
+    }
+}
+
+impl EndianRead for i16 {
+    fn read_le(bytes: &[u8]) -> Self {
+        i16::from_le_bytes(bytes.try_into().unwrap())
+    }
+
+    fn read_be(bytes: &[u8]) -> Self {
+        i16::from_be_bytes(bytes.try_into().unwrap())
     }
 }
 
@@ -31,6 +51,16 @@ impl EndianRead for u32 {
     }
 }
 
+impl EndianRead for i32 {
+    fn read_le(bytes: &[u8]) -> Self {
+        i32::from_le_bytes(bytes.try_into().unwrap())
+    }
+
+    fn read_be(bytes: &[u8]) -> Self {
+        i32::from_be_bytes(bytes.try_into().unwrap())
+    }
+}
+
 impl EndianRead for u64 {
     fn read_le(bytes: &[u8]) -> Self {
         u64::from_le_bytes(bytes.try_into().unwrap())
@@ -38,5 +68,15 @@ impl EndianRead for u64 {
 
     fn read_be(bytes: &[u8]) -> Self {
         u64::from_be_bytes(bytes.try_into().unwrap())
+    }
+}
+
+impl EndianRead for i64 {
+    fn read_le(bytes: &[u8]) -> Self {
+        i64::from_le_bytes(bytes.try_into().unwrap())
+    }
+
+    fn read_be(bytes: &[u8]) -> Self {
+        i64::from_be_bytes(bytes.try_into().unwrap())
     }
 }

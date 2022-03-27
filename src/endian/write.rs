@@ -9,7 +9,27 @@ pub trait EndianWrite: Sized {
     fn write_be(src: &Self, dst: &mut [u8]);
 }
 
+impl EndianWrite for u8 {
+    fn write_le(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_le_bytes());
+    }
+
+    fn write_be(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_be_bytes());
+    }
+}
+
 impl EndianWrite for u16 {
+    fn write_le(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_le_bytes());
+    }
+
+    fn write_be(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_be_bytes());
+    }
+}
+
+impl EndianWrite for i16 {
     fn write_le(src: &Self, dst: &mut [u8]) {
         dst.copy_from_slice(&src.to_le_bytes());
     }
@@ -29,7 +49,27 @@ impl EndianWrite for u32 {
     }
 }
 
+impl EndianWrite for i32 {
+    fn write_le(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_le_bytes());
+    }
+
+    fn write_be(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_be_bytes());
+    }
+}
+
 impl EndianWrite for u64 {
+    fn write_le(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_le_bytes());
+    }
+
+    fn write_be(src: &Self, dst: &mut [u8]) {
+        dst.copy_from_slice(&src.to_be_bytes());
+    }
+}
+
+impl EndianWrite for i64 {
     fn write_le(src: &Self, dst: &mut [u8]) {
         dst.copy_from_slice(&src.to_le_bytes());
     }

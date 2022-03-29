@@ -36,7 +36,7 @@ fn create_write_method_impl(
       fn #impl_method(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let mut stream = ::no_std_io::StreamContainer::new(dst);
         #(#field_tokens)*
-        let bytes_written = stream.get_index();
+        let bytes_written = ::no_std_io::Cursor::get_index(&stream);
         Ok(bytes_written)
       }
     }

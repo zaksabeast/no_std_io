@@ -31,7 +31,7 @@ fn create_method_impl(
             let result = Self {
                 #(#field_tokens),*
             };
-            let bytes_read = stream.get_index();
+            let bytes_read = ::no_std_io::Cursor::get_index(&stream);
 
             Ok(::no_std_io::ReadOutput::new(result, bytes_read))
         }

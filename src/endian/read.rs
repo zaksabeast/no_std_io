@@ -44,6 +44,24 @@ pub trait EndianRead: Sized {
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error>;
 }
 
+impl EndianRead for bool {
+    fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let result = u8::try_read_le(bytes)?;
+        Ok(ReadOutput {
+            read_bytes: result.get_read_bytes(),
+            data: result.into_data() != 0,
+        })
+    }
+
+    fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let result = u8::try_read_le(bytes)?;
+        Ok(ReadOutput {
+            read_bytes: result.get_read_bytes(),
+            data: result.into_data() != 0,
+        })
+    }
+}
+
 impl EndianRead for u8 {
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u8>();

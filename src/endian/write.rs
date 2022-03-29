@@ -16,6 +16,44 @@ pub trait EndianWrite {
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error>;
 }
 
+impl EndianWrite for bool {
+    fn get_size(&self) -> usize {
+        mem::size_of::<Self>()
+    }
+
+    fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<bool>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = [*self as u8];
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+
+    fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<bool>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = [*self as u8];
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+}
+
 impl EndianWrite for u8 {
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()

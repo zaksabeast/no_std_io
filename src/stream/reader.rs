@@ -18,15 +18,31 @@ pub trait StreamReader: Reader + Cursor {
     }
 
     /// Same as [Reader::read_le], but uses the current stream instead of an offset.
-    fn read_stream_le<T: EndianRead + Default>(&mut self) -> ReaderResult<T> {
-        let index = self.swap_incremented_index_for_type::<T>();
-        self.read_le(index)
+    fn read_stream_le<T: EndianRead>(&mut self) -> ReaderResult<T> {
+        let index = self.get_index();
+        let read_value = self.read_le_with_output(index)?;
+        self.increment_by(read_value.get_read_bytes());
+        Ok(read_value.into_data())
     }
 
     /// Same as [StreamReader::read_stream_le], but returns a default value if the read is invalid.
     fn default_read_stream_le<T: EndianRead + Default>(&mut self) -> T {
         let index = self.swap_incremented_index_for_type::<T>();
         self.default_read_le(index)
+    }
+
+    /// Same as [Reader::read_be], but uses the current stream instead of an offset.
+    fn read_stream_be<T: EndianRead>(&mut self) -> ReaderResult<T> {
+        let index = self.get_index();
+        let read_value = self.read_be_with_output(index)?;
+        self.increment_by(read_value.get_read_bytes());
+        Ok(read_value.into_data())
+    }
+
+    /// Same as [StreamReader::read_stream_be], but returns a default value if the read is invalid.
+    fn default_read_stream_be<T: EndianRead + Default>(&mut self) -> T {
+        let index = self.swap_incremented_index_for_type::<T>();
+        self.default_read_be(index)
     }
 
     /// Same as [Reader::read_byte_vec], but uses the current stream instead of an offset.
@@ -157,7 +173,7 @@ mod test {
 
     mod read_stream_le {
         use super::*;
-        use crate::Error;
+        use crate::{Error, ReadOutput};
 
         #[test]
         fn should_return_a_value() {
@@ -186,6 +202,45 @@ mod test {
                     data_len: 8,
                 }
             );
+        }
+
+        #[derive(Debug, PartialEq)]
+        struct Sum(u8);
+
+        impl EndianRead for Sum {
+            fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                let sum = bytes[0].wrapping_add(bytes[1]);
+                Ok(ReadOutput::new(Sum(sum), 2))
+            }
+
+            fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_read_values_with_dynamic_read_lengths() {
+            let mut reader = MockStream::new([0x11, 0x22, 0xaa, 0xbb, 0x88, 0x99, 0x01, 0x02]);
+            let value = reader
+                .read_stream_le::<Sum>()
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, Sum(0x33));
+        }
+
+        #[test]
+        fn should_read_multple_values_with_dynamic_read_lengths() {
+            let mut reader = MockStream::new([0x11, 0x22, 0xaa, 0xbb, 0x88, 0x99, 0x01, 0x02]);
+
+            let value = reader
+                .read_stream_le::<Sum>()
+                .expect("Read should have been successful.");
+            assert_eq!(value, Sum(0x33));
+
+            let value = reader
+                .read_stream_le::<Sum>()
+                .expect("Read should have been successful.");
+            assert_eq!(value, Sum(0x65));
         }
     }
 

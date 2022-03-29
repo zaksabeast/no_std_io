@@ -1,7 +1,7 @@
 #[cfg(feature = "alloc")]
 use alloc::{vec, vec::Vec};
 
-use super::{EndianRead, Error};
+use super::{EndianRead, Error, ReadOutput};
 use core::mem;
 use safe_transmute::{transmute_many_permissive, TriviallyTransmutable};
 
@@ -11,6 +11,18 @@ pub type ReaderResult<T> = Result<T, Error>;
 pub trait Reader {
     /// Returns the data to be read from.
     fn get_slice(&self) -> &[u8];
+
+    /// Returns a slice from the given offset.
+    /// Returns an empty slice if the offset is greater than the slice size.
+    fn get_slice_at_offset(&self, offset: usize) -> &[u8] {
+        let data = self.get_slice();
+
+        if offset >= data.len() {
+            return &[];
+        }
+
+        &data[offset..]
+    }
 
     /// Gets a slice of bytes from an offset of a source where `slice.len() == size`.
     ///
@@ -83,9 +95,30 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
+    fn read_le_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
+        let bytes = self.get_slice_at_offset(offset);
+        T::try_read_le(bytes).map_err(|error| match error {
+            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
+                offset,
+                wanted_size,
+                data_len: self.get_slice().len(),
+            },
+            _ => Error::InvalidSize {
+                offset,
+                wanted_size: 0,
+                data_len: self.get_slice().len(),
+            },
+        })
+    }
+
+    /// Same as [Reader::read_le_with_output], but only returns the read data.
+    ///
+    /// Prefer endian agnostic methods when possible.
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines little endian.
     fn read_le<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
-        let bytes = self.get_sized_slice::<T>(offset)?;
-        Ok(T::read_le(bytes))
+        let result = self.read_le_with_output(offset)?;
+        Ok(result.into_data())
     }
 
     /// Same as [Reader::read_le], but returns a default value if the read is invalid.
@@ -102,9 +135,30 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
+    fn read_be_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
+        let bytes = self.get_slice_at_offset(offset);
+        T::try_read_be(bytes).map_err(|error| match error {
+            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
+                offset,
+                wanted_size,
+                data_len: self.get_slice().len(),
+            },
+            _ => Error::InvalidSize {
+                offset,
+                wanted_size: 0,
+                data_len: self.get_slice().len(),
+            },
+        })
+    }
+
+    /// Same as [Reader::read_be_with_output], but only returns the read data.
+    ///
+    /// Prefer endian agnostic methods when possible.
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines big endian.
     fn read_be<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
-        let bytes = self.get_sized_slice::<T>(offset)?;
-        Ok(T::read_be(bytes))
+        let result = self.read_be_with_output(offset)?;
+        Ok(result.into_data())
     }
 
     /// Same as [Reader::read_be], but returns a default value if the read is invalid.
@@ -345,6 +399,37 @@ mod test {
         }
     }
 
+    mod read_le_with_output {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_le_with_output::<u32>(4)
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, ReadOutput::new(0xddccbbaa, 4));
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let error = reader
+                .read_le_with_output::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    offset: 6,
+                    data_len: 8,
+                }
+            );
+        }
+    }
+
     mod read_le {
         use super::*;
 
@@ -391,6 +476,37 @@ mod test {
             let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
             let value = reader.default_read_le::<u32>(6);
             assert_eq!(value, u32::default());
+        }
+    }
+
+    mod read_be_with_output {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_be_with_output::<u32>(4)
+                .expect("Read should have been successful.");
+
+            assert_eq!(value, ReadOutput::new(0xaabbccdd, 4));
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let error = reader
+                .read_be_with_output::<u32>(6)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 4,
+                    offset: 6,
+                    data_len: 8,
+                }
+            );
         }
     }
 

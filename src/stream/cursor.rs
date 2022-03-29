@@ -5,10 +5,15 @@ pub trait Cursor {
     fn get_index(&self) -> usize;
     fn set_index(&mut self, index: usize);
 
+    /// Increments the index by the given amount.
+    fn increment_by(&mut self, count: usize) {
+        self.set_index(self.get_index() + count);
+    }
+
     /// Returns the current index and replaces it with the provided size.
     fn swap_incremented_index(&mut self, size: usize) -> usize {
         let index = self.get_index();
-        self.set_index(index + size);
+        self.increment_by(size);
         index
     }
 

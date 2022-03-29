@@ -20,15 +20,31 @@ pub trait StreamWriter: Writer + Cursor {
     }
 
     /// Same as [Writer::write_le], but uses the current stream instead of an offset.
-    fn write_stream_le<T: EndianWrite + Default>(&mut self, value: &T) -> WriterResult<usize> {
-        let index = self.swap_incremented_index_for_type::<T>();
-        self.write_le(index, value)
+    fn write_stream_le<T: EndianWrite>(&mut self, value: &T) -> WriterResult<usize> {
+        let index = self.get_index();
+        let bytes_written = self.write_le(index, value)?;
+        self.increment_by(bytes_written);
+        Ok(bytes_written)
     }
 
     /// Same as [StreamWriter::write_stream_le], but does not write if there is not enough space.
     fn checked_write_stream_le<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write_le(index, value)
+    }
+
+    /// Same as [Writer::write_be], but uses the current stream instead of an offset.
+    fn write_stream_be<T: EndianWrite>(&mut self, value: &T) -> WriterResult<usize> {
+        let index = self.get_index();
+        let bytes_written = self.write_be(index, value)?;
+        self.increment_by(bytes_written);
+        Ok(bytes_written)
+    }
+
+    /// Same as [StreamWriter::write_stream_be], but does not write if there is not enough space.
+    fn checked_write_stream_be<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
+        let index = self.swap_incremented_index_for_type::<T>();
+        self.checked_write_be(index, value)
     }
 
     /// Same as [Writer::write_bytes], but uses the current stream instead of an offset.
@@ -260,6 +276,38 @@ mod test {
                     data_len: 8,
                 }
             );
+        }
+
+        #[derive(Debug, PartialEq)]
+        struct Repeat(u8);
+
+        impl EndianWrite for Repeat {
+            fn get_size(&self) -> usize {
+                3
+            }
+
+            fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
+                let bytes: [u8; 3] = [self.0, self.0, self.0];
+                dst[0..3].copy_from_slice(&bytes);
+                Ok(bytes.len())
+            }
+
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_write_values_with_dynamic_read_lengths() {
+            let mut writer = MockStream::new([0x11, 0x22, 0xaa, 0xbb, 0x88, 0x99, 0x01, 0x02]);
+            let written_bytes = writer
+                .write_stream_le(&Repeat(0x50))
+                .expect("Should have been written successfully");
+            assert_eq!(written_bytes, 3);
+
+            let result = writer.get_bytes();
+            let expected = [0x50, 0x50, 0x50, 0xbb, 0x88, 0x99, 0x01, 0x02];
+            assert_eq!(result, expected);
         }
     }
 

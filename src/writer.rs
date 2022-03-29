@@ -18,6 +18,18 @@ pub trait Writer {
     /// Returns the data to be read from.
     fn get_mut_slice(&mut self) -> &mut [u8];
 
+    /// Returns a slice from the given offset.
+    /// Returns an empty slice if the offset is greater than the slice size.
+    fn get_mut_slice_at_offset(&mut self, offset: usize) -> &mut [u8] {
+        let data = self.get_mut_slice();
+
+        if offset >= data.len() {
+            return &mut [];
+        }
+
+        &mut data[offset..]
+    }
+
     /// Gets a slice of bytes with a specified length from an offset of a source.
     ///
     /// An error should be returned if the size is invalid.
@@ -76,9 +88,19 @@ pub trait Writer {
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
     fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
-        let bytes = self.get_type_sized_mut_slice::<T>(offset)?;
-        T::write_le(value, bytes);
-        Ok(bytes.len())
+        let bytes = self.get_mut_slice_at_offset(offset);
+        value.try_write_le(bytes).map_err(|error| match error {
+            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
+                offset,
+                wanted_size,
+                data_len: self.get_mut_slice().len(),
+            },
+            _ => Error::InvalidSize {
+                offset,
+                wanted_size: 0,
+                data_len: self.get_mut_slice().len(),
+            },
+        })
     }
 
     /// Same as [Writer::write_le], but checks to make sure the bytes can safely be written to the offset.
@@ -93,9 +115,19 @@ pub trait Writer {
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
     fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
-        let bytes = self.get_type_sized_mut_slice::<T>(offset)?;
-        T::write_be(value, bytes);
-        Ok(bytes.len())
+        let bytes = self.get_mut_slice_at_offset(offset);
+        value.try_write_be(bytes).map_err(|error| match error {
+            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
+                offset,
+                wanted_size,
+                data_len: self.get_mut_slice().len(),
+            },
+            _ => Error::InvalidSize {
+                offset,
+                wanted_size: 0,
+                data_len: self.get_mut_slice().len(),
+            },
+        })
     }
 
     /// Same as [Writer::write_be], but checks to make sure the bytes can safely be written to the offset.
@@ -123,11 +155,33 @@ impl Writer for Vec<u8> {
         self.as_mut_slice()
     }
 
+    fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
+        let offset_end = offset + value.get_size();
+        let self_len = self.len();
+
+        if offset_end > self_len {
+            self.resize(offset_end, 0);
+        }
+
+        value.try_write_le(&mut self[offset..])
+    }
+
+    fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
+        let offset_end = offset + value.get_size();
+        let self_len = self.len();
+
+        if offset_end > self_len {
+            self.resize(offset_end, 0);
+        }
+
+        value.try_write_be(&mut self[offset..])
+    }
+
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         let offset_end = offset + length;
-        let data_len = self.len();
+        let self_len = self.len();
 
-        if offset_end > data_len {
+        if offset_end > self_len {
             self.resize(offset_end, 0);
         }
 
@@ -352,6 +406,30 @@ mod test {
 
             assert_eq!(writer, vec![0xaa, 0xbb, 0xcc, 0xdd, 0xaa, 0xbb, 0xcc, 0xdd]);
             assert_eq!(writer.len(), 8);
+        }
+
+        #[test]
+        fn should_grow_a_vector_if_needed_with_le() {
+            let mut writer = vec![];
+            let written_length = writer
+                .write_le(0, &0xaabbccddu32)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+            assert_eq!(writer, vec![0xdd, 0xcc, 0xbb, 0xaa]);
+            assert_eq!(writer.len(), 4);
+        }
+
+        #[test]
+        fn should_grow_a_vector_if_needed_with_be() {
+            let mut writer = vec![];
+            let written_length = writer
+                .write_be(0, &0xaabbccddu32)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 4);
+            assert_eq!(writer, vec![0xaa, 0xbb, 0xcc, 0xdd]);
+            assert_eq!(writer.len(), 4);
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{Cursor, Reader, Writer, WriterResult};
+use crate::{Cursor, EndianWrite, Reader, Writer, WriterResult};
 
 /// A convenience container that allows streaming anything that implements [Reader].
 /// The container can also write to anything that implements [Writer], but only [Reader] is needed
@@ -34,6 +34,14 @@ impl<T: Reader + Writer> Writer for StreamContainer<T> {
 
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         self.raw.get_sized_mut_slice(offset, length)
+    }
+
+    fn write_le<U: EndianWrite>(&mut self, offset: usize, value: &U) -> WriterResult<usize> {
+        self.raw.write_le(offset, value)
+    }
+
+    fn write_be<U: EndianWrite>(&mut self, offset: usize, value: &U) -> WriterResult<usize> {
+        self.raw.write_be(offset, value)
     }
 }
 
@@ -76,6 +84,22 @@ mod test {
         let data = vec![];
         let mut stream = StreamContainer::new(data);
         stream.checked_write_stream_bytes(&[0xaa, 0xbb, 0xcc, 0xdd]);
+        assert_eq!(stream.into_raw(), [0xaa, 0xbb, 0xcc, 0xdd]);
+    }
+
+    #[test]
+    fn should_grow_a_vector_if_needed_with_le() {
+        let data = vec![];
+        let mut stream = StreamContainer::new(data);
+        stream.write_stream_le(&0xaabbccddu32).unwrap();
+        assert_eq!(stream.into_raw(), [0xdd, 0xcc, 0xbb, 0xaa]);
+    }
+
+    #[test]
+    fn should_grow_a_vector_if_needed_with_be() {
+        let data = vec![];
+        let mut stream = StreamContainer::new(data);
+        stream.checked_write_stream_be(&0xaabbccddu32);
         assert_eq!(stream.into_raw(), [0xaa, 0xbb, 0xcc, 0xdd]);
     }
 

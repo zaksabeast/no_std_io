@@ -33,7 +33,7 @@ fn create_write_method_impl(
         .collect::<Vec<proc_macro2::TokenStream>>();
 
     quote! {
-      fn #impl_method(&self, dst: &mut [u8]) -> Result<usize, Error> {
+      fn #impl_method(&self, dst: &mut [u8]) -> Result<usize, ::no_std_io::Error> {
         let mut stream = ::no_std_io::StreamContainer::new(dst);
         #(#field_tokens)*
         let bytes_written = ::no_std_io::Cursor::get_index(&stream);

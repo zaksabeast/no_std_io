@@ -103,11 +103,7 @@ pub trait Reader {
                 wanted_size,
                 data_len: self.get_slice().len(),
             },
-            _ => Error::InvalidSize {
-                offset,
-                wanted_size: 0,
-                data_len: self.get_slice().len(),
-            },
+            _ => error,
         })
     }
 
@@ -143,11 +139,7 @@ pub trait Reader {
                 wanted_size,
                 data_len: self.get_slice().len(),
             },
-            _ => Error::InvalidSize {
-                offset,
-                wanted_size: 0,
-                data_len: self.get_slice().len(),
-            },
+            _ => error,
         })
     }
 
@@ -428,6 +420,30 @@ mod test {
                 }
             );
         }
+
+        #[derive(Debug)]
+        struct CustomErrorTest;
+
+        impl EndianRead for CustomErrorTest {
+            fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+
+            fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors() {
+            let result = vec![].read_le::<CustomErrorTest>(0).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
     }
 
     mod read_le {
@@ -507,6 +523,30 @@ mod test {
                     data_len: 8,
                 }
             );
+        }
+
+        #[derive(Debug)]
+        struct CustomErrorTest;
+
+        impl EndianRead for CustomErrorTest {
+            fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                unimplemented!()
+            }
+
+            fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors() {
+            let result = vec![].read_be::<CustomErrorTest>(0).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
         }
     }
 

@@ -95,11 +95,7 @@ pub trait Writer {
                 wanted_size,
                 data_len: self.get_mut_slice().len(),
             },
-            _ => Error::InvalidSize {
-                offset,
-                wanted_size: 0,
-                data_len: self.get_mut_slice().len(),
-            },
+            _ => error,
         })
     }
 
@@ -122,11 +118,7 @@ pub trait Writer {
                 wanted_size,
                 data_len: self.get_mut_slice().len(),
             },
-            _ => Error::InvalidSize {
-                offset,
-                wanted_size: 0,
-                data_len: self.get_mut_slice().len(),
-            },
+            _ => error,
         })
     }
 
@@ -594,6 +586,34 @@ mod test {
             assert_eq!(result, 0xaabbccddu32);
             assert_eq!(writer.len(), 4);
         }
+
+        #[derive(Debug)]
+        struct CustomErrorTest(u32);
+
+        impl EndianWrite for CustomErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors() {
+            let value = CustomErrorTest(0);
+            let mut bytes = vec![];
+            let result = bytes.write_le(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
     }
 
     mod checked_write_le {
@@ -695,6 +715,34 @@ mod test {
                 .expect("Read should have succeeded");
             assert_eq!(result, 0xaabbccddu32);
             assert_eq!(writer.len(), 4);
+        }
+
+        #[derive(Debug)]
+        struct CustomErrorTest(u32);
+
+        impl EndianWrite for CustomErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors() {
+            let value = CustomErrorTest(0);
+            let mut bytes = vec![];
+            let result = bytes.write_be(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
         }
     }
 

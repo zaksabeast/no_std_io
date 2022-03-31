@@ -1,7 +1,7 @@
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use super::{EndianWrite, Error};
+use super::{add_error_context, EndianWrite, Error};
 use core::mem;
 use safe_transmute::{transmute_one_to_bytes, TriviallyTransmutable};
 
@@ -89,14 +89,11 @@ pub trait Writer {
     /// that explicitly defines little endian.
     fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_mut_slice_at_offset(offset);
-        value.try_write_le(bytes).map_err(|error| match error {
-            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
-                offset,
-                wanted_size,
-                data_len: self.get_mut_slice().len(),
-            },
-            _ => error,
-        })
+        add_error_context(
+            value.try_write_le(bytes),
+            offset,
+            self.get_mut_slice().len(),
+        )
     }
 
     /// Same as [Writer::write_le], but checks to make sure the bytes can safely be written to the offset.
@@ -112,14 +109,11 @@ pub trait Writer {
     /// that explicitly defines big endian.
     fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_mut_slice_at_offset(offset);
-        value.try_write_be(bytes).map_err(|error| match error {
-            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
-                offset,
-                wanted_size,
-                data_len: self.get_mut_slice().len(),
-            },
-            _ => error,
-        })
+        add_error_context(
+            value.try_write_be(bytes),
+            offset,
+            self.get_mut_slice().len(),
+        )
     }
 
     /// Same as [Writer::write_be], but checks to make sure the bytes can safely be written to the offset.
@@ -155,7 +149,11 @@ impl Writer for Vec<u8> {
             self.resize(offset_end, 0);
         }
 
-        value.try_write_le(&mut self[offset..])
+        add_error_context(
+            value.try_write_le(&mut self[offset..]),
+            offset,
+            self.get_mut_slice().len(),
+        )
     }
 
     fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
@@ -166,7 +164,11 @@ impl Writer for Vec<u8> {
             self.resize(offset_end, 0);
         }
 
-        value.try_write_be(&mut self[offset..])
+        add_error_context(
+            value.try_write_be(&mut self[offset..]),
+            offset,
+            self.get_mut_slice().len(),
+        )
     }
 
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
@@ -605,12 +607,68 @@ mod test {
         }
 
         #[test]
-        fn should_bubble_up_custom_errors() {
+        fn should_bubble_up_custom_errors_for_vec() {
             let value = CustomErrorTest(0);
             let mut bytes = vec![];
             let result = bytes.write_le(0, &value).unwrap_err();
             let expected = Error::InvalidRead {
                 message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_slice() {
+            let value = CustomErrorTest(0);
+            let bytes = &mut [];
+            let result = bytes.write_le(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianWrite for OffsetErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_vec() {
+            let value = OffsetErrorTest(0);
+            let mut bytes = vec![];
+            let result = bytes.write_le(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 2,
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_slice() {
+            let value = OffsetErrorTest(0);
+            let bytes = &mut [];
+            let result = bytes.write_le(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
             };
             assert_eq!(result, expected)
         }
@@ -735,12 +793,68 @@ mod test {
         }
 
         #[test]
-        fn should_bubble_up_custom_errors() {
+        fn should_bubble_up_custom_errors_for_vec() {
             let value = CustomErrorTest(0);
             let mut bytes = vec![];
             let result = bytes.write_be(0, &value).unwrap_err();
             let expected = Error::InvalidRead {
                 message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_slice() {
+            let value = CustomErrorTest(0);
+            let bytes = &mut [];
+            let result = bytes.write_be(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianWrite for OffsetErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_vec() {
+            let value = OffsetErrorTest(0);
+            let mut bytes = vec![];
+            let result = bytes.write_be(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 2,
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_slice() {
+            let value = OffsetErrorTest(0);
+            let bytes = &mut [];
+            let result = bytes.write_be(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
             };
             assert_eq!(result, expected)
         }

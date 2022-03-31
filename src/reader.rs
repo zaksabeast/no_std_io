@@ -1,7 +1,7 @@
 #[cfg(feature = "alloc")]
 use alloc::{vec, vec::Vec};
 
-use super::{EndianRead, Error, ReadOutput};
+use super::{add_error_context, EndianRead, Error, ReadOutput};
 use core::mem;
 use safe_transmute::{transmute_many_permissive, TriviallyTransmutable};
 
@@ -97,14 +97,7 @@ pub trait Reader {
     /// that explicitly defines little endian.
     fn read_le_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
         let bytes = self.get_slice_at_offset(offset);
-        T::try_read_le(bytes).map_err(|error| match error {
-            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
-                offset,
-                wanted_size,
-                data_len: self.get_slice().len(),
-            },
-            _ => error,
-        })
+        add_error_context(T::try_read_le(bytes), offset, self.get_slice().len())
     }
 
     /// Same as [Reader::read_le_with_output], but only returns the read data.
@@ -133,14 +126,7 @@ pub trait Reader {
     /// that explicitly defines big endian.
     fn read_be_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
         let bytes = self.get_slice_at_offset(offset);
-        T::try_read_be(bytes).map_err(|error| match error {
-            Error::InvalidSize { wanted_size, .. } => Error::InvalidSize {
-                offset,
-                wanted_size,
-                data_len: self.get_slice().len(),
-            },
-            _ => error,
-        })
+        add_error_context(T::try_read_be(bytes), offset, self.get_slice().len())
     }
 
     /// Same as [Reader::read_be_with_output], but only returns the read data.
@@ -444,6 +430,35 @@ mod test {
             };
             assert_eq!(result, expected)
         }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianRead for OffsetErrorTest {
+            fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+
+            fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets() {
+            let bytes = vec![];
+            let result = bytes.read_le::<OffsetErrorTest>(2).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
+            };
+            assert_eq!(result, expected)
+        }
     }
 
     mod read_le {
@@ -545,6 +560,35 @@ mod test {
             let result = vec![].read_be::<CustomErrorTest>(0).unwrap_err();
             let expected = Error::InvalidRead {
                 message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianRead for OffsetErrorTest {
+            fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                unimplemented!()
+            }
+
+            fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets() {
+            let bytes = vec![];
+            let result = bytes.read_be::<OffsetErrorTest>(2).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
             };
             assert_eq!(result, expected)
         }

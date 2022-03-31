@@ -31,3 +31,22 @@ pub enum Error {
     #[snafu(display("Invalid write: {}", message))]
     InvalidWrite { message: &'static str },
 }
+
+pub(crate) fn add_error_context<T>(
+    error: Result<T, Error>,
+    offset: usize,
+    data_len: usize,
+) -> Result<T, Error> {
+    error.map_err(|error| match error {
+        Error::InvalidSize {
+            wanted_size,
+            offset: error_offset,
+            ..
+        } => Error::InvalidSize {
+            wanted_size,
+            offset: offset + error_offset,
+            data_len,
+        },
+        _ => error,
+    })
+}

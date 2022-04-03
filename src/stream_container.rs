@@ -1,5 +1,8 @@
 use crate::{Cursor, EndianWrite, Reader, Writer, WriterResult};
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 /// A convenience container that allows streaming anything that implements [Reader].
 /// The container can also write to anything that implements [Writer], but only [Reader] is needed
 /// to use the container.
@@ -52,6 +55,31 @@ impl<T: Reader> Cursor for StreamContainer<T> {
 
     fn set_index(&mut self, index: usize) {
         self.cursor = index;
+    }
+}
+
+impl<'a> From<StreamContainer<&'a mut [u8]>> for &'a mut [u8] {
+    fn from(stream: StreamContainer<&'a mut [u8]>) -> Self {
+        stream.into_raw()
+    }
+}
+
+impl<'a> From<StreamContainer<&'a [u8]>> for &'a [u8] {
+    fn from(stream: StreamContainer<&'a [u8]>) -> Self {
+        stream.into_raw()
+    }
+}
+
+impl<const SIZE: usize> From<StreamContainer<[u8; SIZE]>> for [u8; SIZE] {
+    fn from(stream: StreamContainer<[u8; SIZE]>) -> Self {
+        stream.into_raw()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl From<StreamContainer<Vec<u8>>> for Vec<u8> {
+    fn from(stream: StreamContainer<Vec<u8>>) -> Self {
+        stream.into_raw()
     }
 }
 

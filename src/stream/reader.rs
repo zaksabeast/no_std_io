@@ -6,18 +6,21 @@ use safe_transmute::TriviallyTransmutable;
 /// An interface to read values as a stream.
 pub trait StreamReader: Reader + Cursor {
     /// Same as [Reader::read], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn read_stream<T: TriviallyTransmutable + Default>(&mut self) -> ReaderResult<T> {
         let index = self.swap_incremented_index_for_type::<T>();
         self.read(index)
     }
 
     /// Same as [StreamReader::read_stream], but returns a default value if the read is invalid.
+    #[inline(always)]
     fn default_read_stream<T: TriviallyTransmutable + Default>(&mut self) -> T {
         let index = self.swap_incremented_index_for_type::<T>();
         self.default_read(index)
     }
 
     /// Same as [Reader::read_le], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn read_stream_le<T: EndianRead>(&mut self) -> ReaderResult<T> {
         let index = self.get_index();
         let read_value = self.read_le_with_output(index)?;
@@ -26,12 +29,14 @@ pub trait StreamReader: Reader + Cursor {
     }
 
     /// Same as [StreamReader::read_stream_le], but returns a default value if the read is invalid.
+    #[inline(always)]
     fn default_read_stream_le<T: EndianRead + Default>(&mut self) -> T {
         let index = self.swap_incremented_index_for_type::<T>();
         self.default_read_le(index)
     }
 
     /// Same as [Reader::read_be], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn read_stream_be<T: EndianRead>(&mut self) -> ReaderResult<T> {
         let index = self.get_index();
         let read_value = self.read_be_with_output(index)?;
@@ -40,18 +45,21 @@ pub trait StreamReader: Reader + Cursor {
     }
 
     /// Same as [StreamReader::read_stream_be], but returns a default value if the read is invalid.
+    #[inline(always)]
     fn default_read_stream_be<T: EndianRead + Default>(&mut self) -> T {
         let index = self.swap_incremented_index_for_type::<T>();
         self.default_read_be(index)
     }
 
     /// Same as [Reader::read_byte_vec], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn read_byte_stream(&mut self, size: usize) -> ReaderResult<Vec<u8>> {
         let index = self.swap_incremented_index(size);
         self.read_byte_vec(index, size)
     }
 
     /// Same as [Reader::default_read_byte_vec], but returns a default value if the read is invalid.
+    #[inline(always)]
     fn default_read_byte_stream(&mut self, size: usize) -> Vec<u8> {
         let index = self.swap_incremented_index(size);
         self.default_read_byte_vec(index, size)

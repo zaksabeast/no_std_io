@@ -17,6 +17,7 @@ struct Test {
 struct ListContainer<T: no_std_io::EndianWrite>(Vec<T>);
 
 impl<T: no_std_io::EndianWrite> no_std_io::EndianWrite for ListContainer<T> {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         let mut size = 0;
         for item in self.0.iter() {
@@ -27,6 +28,7 @@ impl<T: no_std_io::EndianWrite> no_std_io::EndianWrite for ListContainer<T> {
         size + 1
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let size = self.get_size();
         if dst.len() < size {
@@ -48,6 +50,7 @@ impl<T: no_std_io::EndianWrite> no_std_io::EndianWrite for ListContainer<T> {
         Ok(stream.get_index())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let size = self.get_size();
         if dst.len() < size {

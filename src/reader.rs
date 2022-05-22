@@ -14,6 +14,7 @@ pub trait Reader {
 
     /// Returns a slice from the given offset.
     /// Returns an empty slice if the offset is greater than the slice size.
+    #[inline(always)]
     fn get_slice_at_offset(&self, offset: usize) -> &[u8] {
         let data = self.get_slice();
 
@@ -28,6 +29,7 @@ pub trait Reader {
     ///
     /// An error should be returned if the size is invalid (e.g. `offset + size` exceeds the available data)
     /// or if the alignment is incorrect.
+    #[inline(always)]
     fn get_slice_of_size(&self, offset: usize, size: usize) -> ReaderResult<&[u8]> {
         let data = self.get_slice();
         let offset_end = offset + size;
@@ -44,6 +46,7 @@ pub trait Reader {
     }
 
     /// Same as [Reader::get_slice_of_size], but uses `T.len()` for the size.
+    #[inline(always)]
     fn get_sized_slice<T: Sized>(&self, offset: usize) -> ReaderResult<&[u8]> {
         let data = self.get_slice();
         let result_size = mem::size_of::<T>();
@@ -63,6 +66,7 @@ pub trait Reader {
     /// Safely gets a [TriviallyTransmutable] reference.
     /// Errors will be returned if the offset does not have enough data for the target type
     /// or is unaligned.
+    #[inline(always)]
     fn get_transmutable<T: TriviallyTransmutable>(&self, offset: usize) -> ReaderResult<&T> {
         // Read enough bytes for one of the type
         let bytes = self.get_sized_slice::<T>(offset)?;
@@ -81,11 +85,13 @@ pub trait Reader {
     }
 
     /// Same as [Reader::get_transmutable], but copies the reference to be an owned value.
+    #[inline(always)]
     fn read<T: TriviallyTransmutable>(&self, offset: usize) -> ReaderResult<T> {
         Ok(*self.get_transmutable(offset)?)
     }
 
     /// Same as [Reader::read], but returns a default value if the read is invalid.
+    #[inline(always)]
     fn default_read<T: TriviallyTransmutable + Default>(&self, offset: usize) -> T {
         self.read(offset).unwrap_or_default()
     }
@@ -95,6 +101,7 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
+    #[inline(always)]
     fn read_le_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
         let bytes = self.get_slice_at_offset(offset);
         add_error_context(T::try_read_le(bytes), offset, self.get_slice().len())
@@ -105,6 +112,7 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
+    #[inline(always)]
     fn read_le<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
         let result = self.read_le_with_output(offset)?;
         Ok(result.into_data())
@@ -115,6 +123,7 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
+    #[inline(always)]
     fn default_read_le<T: EndianRead + Default>(&self, offset: usize) -> T {
         self.read_le(offset).unwrap_or_default()
     }
@@ -124,6 +133,7 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
+    #[inline(always)]
     fn read_be_with_output<T: EndianRead>(&self, offset: usize) -> ReaderResult<ReadOutput<T>> {
         let bytes = self.get_slice_at_offset(offset);
         add_error_context(T::try_read_be(bytes), offset, self.get_slice().len())
@@ -134,6 +144,7 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
+    #[inline(always)]
     fn read_be<T: EndianRead>(&self, offset: usize) -> ReaderResult<T> {
         let result = self.read_be_with_output(offset)?;
         Ok(result.into_data())
@@ -144,19 +155,22 @@ pub trait Reader {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
+    #[inline(always)]
     fn default_read_be<T: EndianRead + Default>(&self, offset: usize) -> T {
         self.read_be(offset).unwrap_or_default()
     }
 
-    #[cfg(feature = "alloc")]
     /// Same as [Reader::get_slice_of_size], but converts the result to a vector.
+    #[cfg(feature = "alloc")]
+    #[inline(always)]
     fn read_byte_vec(&self, offset: usize, size: usize) -> ReaderResult<Vec<u8>> {
         Ok(self.get_slice_of_size(offset, size)?.to_vec())
     }
 
-    #[cfg(feature = "alloc")]
     /// Same as [Reader::read_byte_vec], but returns a zeroed
     /// out vector of the correct size if the read is invalid.
+    #[cfg(feature = "alloc")]
+    #[inline(always)]
     fn default_read_byte_vec(&self, offset: usize, size: usize) -> Vec<u8> {
         self.read_byte_vec(offset, size)
             .unwrap_or_else(|_| vec![0; size])
@@ -164,18 +178,21 @@ pub trait Reader {
 }
 
 impl<const SIZE: usize> Reader for [u8; SIZE] {
+    #[inline(always)]
     fn get_slice(&self) -> &[u8] {
         self
     }
 }
 
 impl Reader for &[u8] {
+    #[inline(always)]
     fn get_slice(&self) -> &[u8] {
         self
     }
 }
 
 impl Reader for &mut [u8] {
+    #[inline(always)]
     fn get_slice(&self) -> &[u8] {
         self
     }
@@ -183,6 +200,7 @@ impl Reader for &mut [u8] {
 
 #[cfg(feature = "alloc")]
 impl Reader for Vec<u8> {
+    #[inline(always)]
     fn get_slice(&self) -> &[u8] {
         self.as_slice()
     }

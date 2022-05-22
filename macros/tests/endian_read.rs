@@ -17,6 +17,7 @@ struct Test {
 struct ListContainer<T: no_std_io::EndianRead>(Vec<T>);
 
 impl<T: no_std_io::EndianRead> no_std_io::EndianRead for ListContainer<T> {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         if bytes.is_empty() {
             return Err(Error::InvalidSize {
@@ -42,6 +43,7 @@ impl<T: no_std_io::EndianRead> no_std_io::EndianRead for ListContainer<T> {
         Ok(ReadOutput::new(result, read_bytes))
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         if bytes.is_empty() {
             return Err(Error::InvalidSize {

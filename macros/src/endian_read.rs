@@ -26,6 +26,7 @@ fn create_method_impl(
         .collect::<Vec<proc_macro2::TokenStream>>();
 
     quote! {
+        #[inline(always)]
         fn #impl_method(bytes: &[u8]) -> Result<::no_std_io::ReadOutput<Self>, ::no_std_io::Error> {
             let mut stream = ::no_std_io::StreamContainer::new(bytes);
             let result = Self {

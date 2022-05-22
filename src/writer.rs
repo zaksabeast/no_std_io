@@ -20,6 +20,7 @@ pub trait Writer {
 
     /// Returns a slice from the given offset.
     /// Returns an empty slice if the offset is greater than the slice size.
+    #[inline(always)]
     fn get_mut_slice_at_offset(&mut self, offset: usize) -> &mut [u8] {
         let data = self.get_mut_slice();
 
@@ -33,6 +34,7 @@ pub trait Writer {
     /// Gets a slice of bytes with a specified length from an offset of a source.
     ///
     /// An error should be returned if the size is invalid.
+    #[inline(always)]
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         let data = self.get_mut_slice();
         let offset_end = offset + length;
@@ -49,6 +51,7 @@ pub trait Writer {
     }
 
     /// Same as [Writer::get_sized_mut_slice], except the length comes from `T.len()`.
+    #[inline(always)]
     fn get_type_sized_mut_slice<T: Sized>(&mut self, offset: usize) -> WriterResult<&mut [u8]> {
         let length = mem::size_of::<T>();
         self.get_sized_mut_slice(offset, length)
@@ -57,6 +60,7 @@ pub trait Writer {
     /// Writes bytes to an offset and returns the number of bytes written.
     ///
     /// Errors if the byte slice length will not fit at the offset.
+    #[inline(always)]
     fn write_bytes(&mut self, offset: usize, bytes: &[u8]) -> WriterResult<usize> {
         let length = bytes.len();
         let slice = self.get_sized_mut_slice(offset, length)?;
@@ -67,17 +71,20 @@ pub trait Writer {
 
     /// Same as [Writer::write_bytes], but checks to make sure the bytes can safely be written to the offset.
     /// Returns 0 as the write size if the bytes won't fit into the offset.
+    #[inline(always)]
     fn checked_write_bytes(&mut self, offset: usize, bytes: &[u8]) -> usize {
         self.write_bytes(offset, bytes).unwrap_or(0)
     }
 
     /// Same as [Writer::write_bytes], but writes a [TriviallyTransmutable] type by converting it to bytes.
+    #[inline(always)]
     fn write<T: TriviallyTransmutable>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = transmute_one_to_bytes(value);
         self.write_bytes(offset, bytes)
     }
 
     /// Same as [Writer::checked_write_bytes], but writes a [TriviallyTransmutable] type by converting it to bytes.
+    #[inline(always)]
     fn checked_write<T: TriviallyTransmutable>(&mut self, offset: usize, value: &T) -> usize {
         self.write(offset, value).unwrap_or(0)
     }
@@ -87,6 +94,7 @@ pub trait Writer {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines little endian.
+    #[inline(always)]
     fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_mut_slice_at_offset(offset);
         add_error_context(
@@ -98,6 +106,7 @@ pub trait Writer {
 
     /// Same as [Writer::write_le], but checks to make sure the bytes can safely be written to the offset.
     /// Returns 0 as the write size if the bytes won't fit into the offset.
+    #[inline(always)]
     fn checked_write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> usize {
         self.write_le(offset, value).unwrap_or(0)
     }
@@ -107,6 +116,7 @@ pub trait Writer {
     /// Prefer endian agnostic methods when possible.
     /// This should only be used when reading data from a format or protocol
     /// that explicitly defines big endian.
+    #[inline(always)]
     fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let bytes = self.get_mut_slice_at_offset(offset);
         add_error_context(
@@ -118,18 +128,21 @@ pub trait Writer {
 
     /// Same as [Writer::write_be], but checks to make sure the bytes can safely be written to the offset.
     /// Returns 0 as the write size if the bytes won't fit into the offset.
+    #[inline(always)]
     fn checked_write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> usize {
         self.write_be(offset, value).unwrap_or(0)
     }
 }
 
 impl<const SIZE: usize> Writer for [u8; SIZE] {
+    #[inline(always)]
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self
     }
 }
 
 impl Writer for &mut [u8] {
+    #[inline(always)]
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self
     }
@@ -137,10 +150,12 @@ impl Writer for &mut [u8] {
 
 #[cfg(feature = "alloc")]
 impl Writer for Vec<u8> {
+    #[inline(always)]
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self.as_mut_slice()
     }
 
+    #[inline(always)]
     fn write_le<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let offset_end = offset + value.get_size();
         let self_len = self.len();
@@ -156,6 +171,7 @@ impl Writer for Vec<u8> {
         )
     }
 
+    #[inline(always)]
     fn write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> WriterResult<usize> {
         let offset_end = offset + value.get_size();
         let self_len = self.len();
@@ -171,6 +187,7 @@ impl Writer for Vec<u8> {
         )
     }
 
+    #[inline(always)]
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         let offset_end = offset + length;
         let self_len = self.len();

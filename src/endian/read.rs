@@ -10,22 +10,26 @@ pub struct ReadOutput<T: Sized> {
 }
 
 impl<T: Sized> ReadOutput<T> {
+    #[inline(always)]
     pub fn new(data: T, read_bytes: usize) -> Self {
         Self { data, read_bytes }
     }
 
     /// Consumes the read output and returns the inner data.
+    #[inline(always)]
     pub fn into_data(self) -> T {
         self.data
     }
 
     /// Returns the number of bytes used to read the data.
+    #[inline(always)]
     pub fn get_read_bytes(&self) -> usize {
         self.read_bytes
     }
 
     /// Converts the data of ReadOutput into a new type,
     /// and retains the read bytes.
+    #[inline(always)]
     pub fn into_other<U: From<T>>(self) -> ReadOutput<U> {
         let read_bytes = self.get_read_bytes();
         let data = self.into_data().into();
@@ -45,6 +49,7 @@ pub trait EndianRead: Sized {
 }
 
 impl EndianRead for bool {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let result = u8::try_read_le(bytes)?;
         Ok(ReadOutput {
@@ -53,6 +58,7 @@ impl EndianRead for bool {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let result = u8::try_read_le(bytes)?;
         Ok(ReadOutput {
@@ -63,6 +69,7 @@ impl EndianRead for bool {
 }
 
 impl EndianRead for u8 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u8>();
 
@@ -80,6 +87,7 @@ impl EndianRead for u8 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u8>();
 
@@ -99,6 +107,7 @@ impl EndianRead for u8 {
 }
 
 impl EndianRead for i8 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i8>();
 
@@ -116,6 +125,7 @@ impl EndianRead for i8 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i8>();
 
@@ -135,6 +145,7 @@ impl EndianRead for i8 {
 }
 
 impl EndianRead for u16 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u16>();
 
@@ -152,6 +163,7 @@ impl EndianRead for u16 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u16>();
 
@@ -171,6 +183,7 @@ impl EndianRead for u16 {
 }
 
 impl EndianRead for i16 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i16>();
 
@@ -188,6 +201,7 @@ impl EndianRead for i16 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i16>();
 
@@ -207,6 +221,7 @@ impl EndianRead for i16 {
 }
 
 impl EndianRead for u32 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u32>();
 
@@ -224,6 +239,7 @@ impl EndianRead for u32 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u32>();
 
@@ -243,6 +259,7 @@ impl EndianRead for u32 {
 }
 
 impl EndianRead for i32 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i32>();
 
@@ -260,6 +277,7 @@ impl EndianRead for i32 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i32>();
 
@@ -279,6 +297,7 @@ impl EndianRead for i32 {
 }
 
 impl EndianRead for u64 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u64>();
 
@@ -296,6 +315,7 @@ impl EndianRead for u64 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<u64>();
 
@@ -315,6 +335,7 @@ impl EndianRead for u64 {
 }
 
 impl EndianRead for i64 {
+    #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i64>();
 
@@ -332,6 +353,7 @@ impl EndianRead for i64 {
         })
     }
 
+    #[inline(always)]
     fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         let byte_count = mem::size_of::<i64>();
 

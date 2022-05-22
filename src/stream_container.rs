@@ -15,62 +15,74 @@ pub struct StreamContainer<T: Reader> {
 }
 
 impl<T: Reader> StreamContainer<T> {
+    #[inline(always)]
     pub fn new(raw: T) -> Self {
         Self { raw, cursor: 0 }
     }
 
+    #[inline(always)]
     pub fn into_raw(self) -> T {
         self.raw
     }
 }
 
 impl<T: Reader> Reader for StreamContainer<T> {
+    #[inline(always)]
     fn get_slice(&self) -> &[u8] {
         self.raw.get_slice()
     }
 }
 
 impl<T: Reader + Writer> Writer for StreamContainer<T> {
+    #[inline(always)]
     fn get_mut_slice(&mut self) -> &mut [u8] {
         self.raw.get_mut_slice()
     }
 
+    #[inline(always)]
     fn get_sized_mut_slice(&mut self, offset: usize, length: usize) -> WriterResult<&mut [u8]> {
         self.raw.get_sized_mut_slice(offset, length)
     }
 
+    #[inline(always)]
     fn write_le<U: EndianWrite>(&mut self, offset: usize, value: &U) -> WriterResult<usize> {
         self.raw.write_le(offset, value)
     }
 
+    #[inline(always)]
     fn write_be<U: EndianWrite>(&mut self, offset: usize, value: &U) -> WriterResult<usize> {
         self.raw.write_be(offset, value)
     }
 }
 
 impl<T: Reader> Cursor for StreamContainer<T> {
+    #[inline(always)]
     fn get_index(&self) -> usize {
         self.cursor
     }
 
+    #[inline(always)]
     fn set_index(&mut self, index: usize) {
         self.cursor = index;
     }
 }
 
 impl<'a> From<StreamContainer<&'a mut [u8]>> for &'a mut [u8] {
+    #[inline(always)]
     fn from(stream: StreamContainer<&'a mut [u8]>) -> Self {
         stream.into_raw()
     }
 }
 
 impl<'a> From<StreamContainer<&'a [u8]>> for &'a [u8] {
+    #[inline(always)]
     fn from(stream: StreamContainer<&'a [u8]>) -> Self {
         stream.into_raw()
     }
 }
 
 impl<const SIZE: usize> From<StreamContainer<[u8; SIZE]>> for [u8; SIZE] {
+    #[inline(always)]
     fn from(stream: StreamContainer<[u8; SIZE]>) -> Self {
         stream.into_raw()
     }
@@ -78,6 +90,7 @@ impl<const SIZE: usize> From<StreamContainer<[u8; SIZE]>> for [u8; SIZE] {
 
 #[cfg(feature = "alloc")]
 impl From<StreamContainer<Vec<u8>>> for Vec<u8> {
+    #[inline(always)]
     fn from(stream: StreamContainer<Vec<u8>>) -> Self {
         stream.into_raw()
     }

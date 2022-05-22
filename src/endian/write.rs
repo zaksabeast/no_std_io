@@ -17,10 +17,12 @@ pub trait EndianWrite {
 }
 
 impl EndianWrite for bool {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<bool>();
 
@@ -37,6 +39,7 @@ impl EndianWrite for bool {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<bool>();
 
@@ -55,10 +58,12 @@ impl EndianWrite for bool {
 }
 
 impl EndianWrite for u8 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u8>();
 
@@ -75,6 +80,7 @@ impl EndianWrite for u8 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u8>();
 
@@ -93,10 +99,12 @@ impl EndianWrite for u8 {
 }
 
 impl EndianWrite for i8 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i8>();
 
@@ -113,6 +121,7 @@ impl EndianWrite for i8 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i8>();
 
@@ -131,10 +140,12 @@ impl EndianWrite for i8 {
 }
 
 impl EndianWrite for u16 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u16>();
 
@@ -151,6 +162,7 @@ impl EndianWrite for u16 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u16>();
 
@@ -169,10 +181,12 @@ impl EndianWrite for u16 {
 }
 
 impl EndianWrite for i16 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i16>();
 
@@ -189,6 +203,7 @@ impl EndianWrite for i16 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i16>();
 
@@ -207,10 +222,12 @@ impl EndianWrite for i16 {
 }
 
 impl EndianWrite for u32 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u32>();
 
@@ -227,6 +244,7 @@ impl EndianWrite for u32 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u32>();
 
@@ -245,10 +263,12 @@ impl EndianWrite for u32 {
 }
 
 impl EndianWrite for i32 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i32>();
 
@@ -265,6 +285,7 @@ impl EndianWrite for i32 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i32>();
 
@@ -283,10 +304,12 @@ impl EndianWrite for i32 {
 }
 
 impl EndianWrite for u64 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u64>();
 
@@ -303,6 +326,7 @@ impl EndianWrite for u64 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<u64>();
 
@@ -321,10 +345,12 @@ impl EndianWrite for u64 {
 }
 
 impl EndianWrite for i64 {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         mem::size_of::<Self>()
     }
 
+    #[inline(always)]
     fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i64>();
 
@@ -341,6 +367,7 @@ impl EndianWrite for i64 {
         Ok(bytes.len())
     }
 
+    #[inline(always)]
     fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
         let byte_count = mem::size_of::<i64>();
 

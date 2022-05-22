@@ -32,6 +32,7 @@ pub enum Error {
     InvalidWrite { message: &'static str },
 }
 
+#[inline(always)]
 pub(crate) fn add_error_context<T>(
     error: Result<T, Error>,
     offset: usize,

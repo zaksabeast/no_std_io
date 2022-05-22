@@ -5,6 +5,7 @@ use safe_transmute::TriviallyTransmutable;
 /// An interface to write values as a stream.
 pub trait StreamWriter: Writer + Cursor {
     /// Same as [Writer::write], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn write_stream<T: TriviallyTransmutable + Default>(
         &mut self,
         value: &T,
@@ -14,12 +15,14 @@ pub trait StreamWriter: Writer + Cursor {
     }
 
     /// Same as [StreamWriter::write_stream], but does not write if there is not enough space.
+    #[inline(always)]
     fn checked_write_stream<T: TriviallyTransmutable + Default>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write(index, value)
     }
 
     /// Same as [Writer::write_le], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn write_stream_le<T: EndianWrite>(&mut self, value: &T) -> WriterResult<usize> {
         let index = self.get_index();
         let bytes_written = self.write_le(index, value)?;
@@ -28,12 +31,14 @@ pub trait StreamWriter: Writer + Cursor {
     }
 
     /// Same as [StreamWriter::write_stream_le], but does not write if there is not enough space.
+    #[inline(always)]
     fn checked_write_stream_le<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write_le(index, value)
     }
 
     /// Same as [Writer::write_be], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn write_stream_be<T: EndianWrite>(&mut self, value: &T) -> WriterResult<usize> {
         let index = self.get_index();
         let bytes_written = self.write_be(index, value)?;
@@ -42,18 +47,21 @@ pub trait StreamWriter: Writer + Cursor {
     }
 
     /// Same as [StreamWriter::write_stream_be], but does not write if there is not enough space.
+    #[inline(always)]
     fn checked_write_stream_be<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write_be(index, value)
     }
 
     /// Same as [Writer::write_bytes], but uses the current stream instead of an offset.
+    #[inline(always)]
     fn write_stream_bytes(&mut self, bytes: &[u8]) -> WriterResult<usize> {
         let index = self.swap_incremented_index(bytes.len());
         self.write_bytes(index, bytes)
     }
 
     /// Same as [Writer::checked_write_bytes], but does not write if there is not enough space.
+    #[inline(always)]
     fn checked_write_stream_bytes(&mut self, bytes: &[u8]) -> usize {
         let index = self.swap_incremented_index(bytes.len());
         self.checked_write_bytes(index, bytes)

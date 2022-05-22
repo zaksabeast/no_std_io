@@ -6,11 +6,13 @@ pub trait Cursor {
     fn set_index(&mut self, index: usize);
 
     /// Increments the index by the given amount.
+    #[inline(always)]
     fn increment_by(&mut self, count: usize) {
         self.set_index(self.get_index() + count);
     }
 
     /// Returns the current index and replaces it with the provided size.
+    #[inline(always)]
     fn swap_incremented_index(&mut self, size: usize) -> usize {
         let index = self.get_index();
         self.increment_by(size);
@@ -19,6 +21,7 @@ pub trait Cursor {
 
     /// Returns the current index and replaces it
     /// with the size of the provided type added to the index.
+    #[inline(always)]
     fn swap_incremented_index_for_type<T: Sized>(&mut self) -> usize {
         let size = size_of::<T>();
         self.swap_incremented_index(size)

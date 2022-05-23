@@ -384,3 +384,17 @@ impl EndianWrite for i64 {
         Ok(bytes.len())
     }
 }
+
+impl EndianWrite for () {
+    fn get_size(&self) -> usize {
+        0
+    }
+
+    fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+        Ok(0)
+    }
+
+    fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+        Ok(0)
+    }
+}

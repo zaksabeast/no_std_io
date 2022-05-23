@@ -371,3 +371,13 @@ impl EndianRead for i64 {
         })
     }
 }
+
+impl EndianRead for () {
+    fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        Ok(ReadOutput::new((), 0))
+    }
+
+    fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        Ok(ReadOutput::new((), 0))
+    }
+}

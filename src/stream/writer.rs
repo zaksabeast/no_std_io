@@ -6,17 +6,14 @@ use safe_transmute::TriviallyTransmutable;
 pub trait StreamWriter: Writer + Cursor {
     /// Same as [Writer::write], but uses the current stream instead of an offset.
     #[inline(always)]
-    fn write_stream<T: TriviallyTransmutable + Default>(
-        &mut self,
-        value: &T,
-    ) -> WriterResult<usize> {
+    fn write_stream<T: TriviallyTransmutable>(&mut self, value: &T) -> WriterResult<usize> {
         let index = self.swap_incremented_index_for_type::<T>();
         self.write(index, value)
     }
 
     /// Same as [StreamWriter::write_stream], but does not write if there is not enough space.
     #[inline(always)]
-    fn checked_write_stream<T: TriviallyTransmutable + Default>(&mut self, value: &T) -> usize {
+    fn checked_write_stream<T: TriviallyTransmutable>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write(index, value)
     }
@@ -32,7 +29,7 @@ pub trait StreamWriter: Writer + Cursor {
 
     /// Same as [StreamWriter::write_stream_le], but does not write if there is not enough space.
     #[inline(always)]
-    fn checked_write_stream_le<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
+    fn checked_write_stream_le<T: EndianWrite>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write_le(index, value)
     }
@@ -48,7 +45,7 @@ pub trait StreamWriter: Writer + Cursor {
 
     /// Same as [StreamWriter::write_stream_be], but does not write if there is not enough space.
     #[inline(always)]
-    fn checked_write_stream_be<T: EndianWrite + Default>(&mut self, value: &T) -> usize {
+    fn checked_write_stream_be<T: EndianWrite>(&mut self, value: &T) -> usize {
         let index = self.swap_incremented_index_for_type::<T>();
         self.checked_write_be(index, value)
     }

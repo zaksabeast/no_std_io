@@ -1,10 +1,13 @@
-use super::cursor::Cursor;
+use super::{
+    cursor::Cursor,
+    iter::{BeIter, LeIter},
+};
 use crate::{EndianRead, Reader, ReaderResult};
 use alloc::vec::Vec;
 use safe_transmute::TriviallyTransmutable;
 
 /// An interface to read values as a stream.
-pub trait StreamReader: Reader + Cursor {
+pub trait StreamReader: Reader + Cursor + Sized {
     /// Same as [Reader::read], but uses the current stream instead of an offset.
     #[inline(always)]
     fn read_stream<T: TriviallyTransmutable + Default>(&mut self) -> ReaderResult<T> {
@@ -63,6 +66,16 @@ pub trait StreamReader: Reader + Cursor {
     fn default_read_byte_stream(&mut self, size: usize) -> Vec<u8> {
         let index = self.swap_incremented_index(size);
         self.default_read_byte_vec(index, size)
+    }
+
+    #[inline(always)]
+    fn into_le_iter<Item: EndianRead>(self) -> LeIter<Item, Self> {
+        LeIter::new(self)
+    }
+
+    #[inline(always)]
+    fn into_be_iter<Item: EndianRead>(self) -> BeIter<Item, Self> {
+        BeIter::new(self)
     }
 }
 
@@ -325,6 +338,50 @@ mod test {
             reader.set_index(6);
             let value = reader.default_read_byte_stream(4);
             assert_eq!(value, vec![0, 0, 0, 0]);
+        }
+    }
+
+    mod into_le_iter {
+        use super::*;
+
+        #[test]
+        fn should_iterate() {
+            let data: [u8; 8] = [0xaa, 0xbb, 0xcc, 0xdd, 0x11, 0x22, 0x33, 0x44];
+            let result = MockStream::new(data).into_le_iter().collect::<Vec<u32>>();
+            assert_eq!(result, [0xddccbbaa, 0x44332211]);
+        }
+
+        #[test]
+        fn should_iterate_from_cursor() {
+            let data: [u8; 8] = [0xaa, 0xbb, 0xcc, 0xdd, 0x11, 0x22, 0x33, 0x44];
+            let mut stream = MockStream::new(data);
+            let first: u32 = stream.read_stream_le().unwrap();
+            let second = stream.into_le_iter().collect::<Vec<u32>>();
+
+            assert_eq!(first, 0xddccbbaa);
+            assert_eq!(second, [0x44332211]);
+        }
+    }
+
+    mod into_be_iter {
+        use super::*;
+
+        #[test]
+        fn should_iterate() {
+            let data: [u8; 8] = [0xaa, 0xbb, 0xcc, 0xdd, 0x11, 0x22, 0x33, 0x44];
+            let result = MockStream::new(data).into_be_iter().collect::<Vec<u32>>();
+            assert_eq!(result, [0xaabbccdd, 0x11223344]);
+        }
+
+        #[test]
+        fn should_iterate_from_cursor() {
+            let data: [u8; 8] = [0xaa, 0xbb, 0xcc, 0xdd, 0x11, 0x22, 0x33, 0x44];
+            let mut stream = MockStream::new(data);
+            let first: u32 = stream.read_stream_be().unwrap();
+            let second = stream.into_be_iter().collect::<Vec<u32>>();
+
+            assert_eq!(first, 0xaabbccdd);
+            assert_eq!(second, [0x11223344]);
         }
     }
 }

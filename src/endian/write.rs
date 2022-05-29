@@ -385,6 +385,41 @@ impl EndianWrite for i64 {
     }
 }
 
+impl<const SIZE: usize> EndianWrite for [u8; SIZE] {
+    #[inline(always)]
+    fn get_size(&self) -> usize {
+        SIZE
+    }
+
+    #[inline(always)]
+    fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        if SIZE > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: SIZE,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        dst[..SIZE].copy_from_slice(self);
+        Ok(SIZE)
+    }
+
+    #[inline(always)]
+    fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        if SIZE > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: SIZE,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        dst[..SIZE].copy_from_slice(self);
+        Ok(SIZE)
+    }
+}
+
 impl EndianWrite for () {
     fn get_size(&self) -> usize {
         0

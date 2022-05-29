@@ -372,6 +372,40 @@ impl EndianRead for i64 {
     }
 }
 
+impl<const SIZE: usize> EndianRead for [u8; SIZE] {
+    #[inline(always)]
+    fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        if SIZE > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: SIZE,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: bytes[..SIZE].try_into().unwrap(),
+            read_bytes: SIZE,
+        })
+    }
+
+    #[inline(always)]
+    fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        if SIZE > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: SIZE,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: bytes[..SIZE].try_into().unwrap(),
+            read_bytes: SIZE,
+        })
+    }
+}
+
 impl EndianRead for () {
     fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         Ok(ReadOutput::new((), 0))

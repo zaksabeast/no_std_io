@@ -1,8 +1,10 @@
+use super::macro_args::MacroArgs;
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::quote;
 use syn::{
-    self, parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput,
-    Field, Fields,
+    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field,
+    Fields,
 };
 
 fn create_field(
@@ -10,8 +12,16 @@ fn create_field(
     field_method: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
+    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs { pad_before }) => {
+            quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+        }
+        _ => quote! {},
+    };
+
     quote! {
-        #field_ident: ::no_std_io::StreamReader::#field_method(&mut stream)?
+        #pad_before
+        let #field_ident = ::no_std_io::StreamReader::#field_method(&mut stream)?;
     }
 }
 
@@ -24,13 +34,18 @@ fn create_method_impl(
         .iter()
         .map(|field| create_field(field, &field_method))
         .collect::<Vec<proc_macro2::TokenStream>>();
+    let field_idents = fields
+        .iter()
+        .map(|field| field.ident.as_ref().expect("Field should have identity"))
+        .collect::<Vec<&Ident>>();
 
     quote! {
         #[inline(always)]
         fn #impl_method(bytes: &[u8]) -> Result<::no_std_io::ReadOutput<Self>, ::no_std_io::Error> {
             let mut stream = ::no_std_io::StreamContainer::new(bytes);
+            #(#field_tokens)*
             let result = Self {
-                #(#field_tokens),*
+                #(#field_idents),*
             };
             let bytes_read = ::no_std_io::Cursor::get_index(&stream);
 

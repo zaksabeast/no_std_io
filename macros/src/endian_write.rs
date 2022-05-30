@@ -1,3 +1,4 @@
+use super::macro_args::MacroArgs;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -7,7 +8,13 @@ use syn::{
 
 fn create_get_size_field(field: &Field) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
+    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs { pad_before }) => pad_before,
+        _ => 0,
+    };
+
     quote! {
+      size += #pad_before;
       size += ::no_std_io::EndianWrite::get_size(&self.#field_ident);
     }
 }
@@ -17,7 +24,15 @@ fn create_write_field(
     field_method: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
+    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs { pad_before }) => {
+            quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+        }
+        _ => quote! {},
+    };
+
     quote! {
+      #pad_before
       ::no_std_io::StreamWriter::#field_method(&mut stream, &self.#field_ident)?;
     }
 }

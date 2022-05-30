@@ -1,12 +1,6 @@
 use macros::EndianRead;
 use no_std_io::{Cursor, Error, ReadOutput, Reader, StreamContainer, StreamReader};
 
-// This is here purely to test compilation
-#[derive(Debug, Default, PartialEq, EndianRead)]
-struct StructWithGeneric<T: no_std_io::EndianRead + no_std_io::EndianWrite> {
-    data: T,
-}
-
 #[derive(Debug, Default, PartialEq, EndianRead)]
 struct Test {
     first: u8,
@@ -166,4 +160,123 @@ fn should_read_nested_be() {
     };
 
     assert_eq!(result, expected);
+}
+
+mod padding {
+    use super::*;
+
+    #[derive(Debug, Default, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct NestedContainer<T: no_std_io::EndianRead + no_std_io::EndianWrite> {
+        first: u32,
+        data: T,
+    }
+
+    #[derive(Debug, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct PaddedTest {
+        #[no_std_io(pad_before = 1)]
+        first: u8,
+        #[no_std_io(pad_before = 2)]
+        second: u32,
+    }
+
+    #[test]
+    fn should_read_le() {
+        let bytes = vec![0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb];
+        let result: PaddedTest = bytes.read_le(0).expect("Read should have worked");
+        let expected = PaddedTest {
+            first: 0xaa,
+            second: 0xbbccddee,
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_be() {
+        let bytes = vec![0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee];
+        let result: PaddedTest = bytes.read_be(0).expect("Read should have worked");
+        let expected = PaddedTest {
+            first: 0xaa,
+            second: 0xbbccddee,
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_nested_le() {
+        let bytes = vec![
+            0x44, 0x33, 0x22, 0x11, 0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb,
+        ];
+        let result: NestedContainer<PaddedTest> =
+            bytes.read_le(0).expect("Read should have worked");
+        let expected = NestedContainer {
+            first: 0x11223344,
+            data: PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_nested_be() {
+        let bytes = vec![
+            0x11, 0x22, 0x33, 0x44, 0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee,
+        ];
+        let result: NestedContainer<PaddedTest> =
+            bytes.read_be(0).expect("Read should have worked");
+        let expected = NestedContainer {
+            first: 0x11223344,
+            data: PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_dynamic_size_le() {
+        let bytes = vec![
+            0x02, 0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb, 0x00, 0x11, 0x00, 0x00, 0x55,
+            0x44, 0x33, 0x22,
+        ];
+        let result: ListContainer<PaddedTest> = bytes.read_le(0).expect("Write should have worked");
+        let expected = ListContainer::<PaddedTest>(vec![
+            PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+            PaddedTest {
+                first: 0x11,
+                second: 0x22334455,
+            },
+        ]);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_dynamic_size_be() {
+        let bytes = vec![
+            0x02, 0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee, 0x00, 0x11, 0x00, 0x00, 0x22,
+            0x33, 0x44, 0x55,
+        ];
+        let result: ListContainer<PaddedTest> = bytes.read_be(0).expect("Write should have worked");
+        let expected = ListContainer::<PaddedTest>(vec![
+            PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+            PaddedTest {
+                first: 0x11,
+                second: 0x22334455,
+            },
+        ]);
+        assert_eq!(result, expected);
+    }
 }

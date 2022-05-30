@@ -7,6 +7,7 @@ Benefits:
 - Works with no_std
 - Optional alloc feature
 - Traits are provided so data can come from any source
+- Padding attributes for aligned data
 
 ## Examples
 

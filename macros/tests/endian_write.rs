@@ -1,12 +1,6 @@
 use macros::EndianWrite;
 use no_std_io::{Cursor, Error, StreamContainer, StreamWriter, Writer};
 
-// This is here purely to test compilation
-#[derive(Debug, Default, PartialEq, EndianWrite)]
-struct StructWithGeneric<T: no_std_io::EndianRead + no_std_io::EndianWrite> {
-    data: T,
-}
-
 #[derive(Debug, Default, PartialEq, EndianWrite)]
 struct Test {
     first: u8,
@@ -188,4 +182,158 @@ fn should_write_nested_be() {
         bytes,
         [0x00, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x55, 0x66, 0x77, 0x88,]
     )
+}
+
+mod padding {
+    use super::*;
+    use no_std_io::EndianWrite;
+
+    #[derive(Debug, Default, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct NestedContainer<T: no_std_io::EndianRead + no_std_io::EndianWrite> {
+        first: u32,
+        data: T,
+    }
+
+    #[derive(Debug, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct PaddedTest {
+        #[no_std_io(pad_before = 1)]
+        first: u8,
+        #[no_std_io(pad_before = 2)]
+        second: u32,
+    }
+
+    #[test]
+    fn should_get_size() {
+        let value = PaddedTest {
+            first: 0xaa,
+            second: 0xbbccddee,
+        };
+        assert_eq!(value.get_size(), 8);
+    }
+
+    #[test]
+    fn should_get_nested_size() {
+        let value = NestedContainer {
+            first: 0x11223344,
+            data: PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+        };
+        assert_eq!(value.get_size(), 12);
+    }
+
+    #[test]
+    fn should_write_le() {
+        let value = PaddedTest {
+            first: 0xaa,
+            second: 0xbbccddee,
+        };
+        let mut bytes = vec![0; 8];
+        let result = bytes.write_le(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 8);
+        assert_eq!(bytes, [0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb]);
+    }
+
+    #[test]
+    fn should_write_be() {
+        let value = PaddedTest {
+            first: 0xaa,
+            second: 0xbbccddee,
+        };
+        let mut bytes = vec![0; 8];
+        let result = bytes.write_be(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 8);
+        assert_eq!(bytes, [0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee]);
+    }
+
+    #[test]
+    fn should_write_nested_le() {
+        let value = NestedContainer {
+            first: 0x11223344,
+            data: PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+        };
+        let mut bytes = vec![0; 12];
+        let result = bytes.write_le(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 12);
+        assert_eq!(
+            bytes,
+            [0x44, 0x33, 0x22, 0x11, 0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb]
+        );
+    }
+
+    #[test]
+    fn should_write_nested_be() {
+        let value = NestedContainer {
+            first: 0x11223344,
+            data: PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+        };
+        let mut bytes = vec![0; 12];
+        let result = bytes.write_be(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 12);
+        assert_eq!(
+            bytes,
+            [0x11, 0x22, 0x33, 0x44, 0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee]
+        );
+    }
+
+    #[test]
+    fn should_write_dynamic_size_le() {
+        let value = ListContainer::<PaddedTest>(vec![
+            PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+            PaddedTest {
+                first: 0x11,
+                second: 0x22334455,
+            },
+        ]);
+        let mut bytes = vec![];
+        let result = bytes.write_le(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 17);
+        assert_eq!(
+            bytes,
+            [
+                0x02, 0x00, 0xaa, 0x00, 0x00, 0xee, 0xdd, 0xcc, 0xbb, 0x00, 0x11, 0x00, 0x00, 0x55,
+                0x44, 0x33, 0x22
+            ]
+        );
+    }
+
+    #[test]
+    fn should_write_dynamic_size_be() {
+        let value = ListContainer::<PaddedTest>(vec![
+            PaddedTest {
+                first: 0xaa,
+                second: 0xbbccddee,
+            },
+            PaddedTest {
+                first: 0x11,
+                second: 0x22334455,
+            },
+        ]);
+        let mut bytes = vec![];
+        let result = bytes.write_be(0, &value).expect("Write should have worked");
+
+        assert_eq!(result, 17);
+        assert_eq!(
+            bytes,
+            [
+                0x02, 0x00, 0xaa, 0x00, 0x00, 0xbb, 0xcc, 0xdd, 0xee, 0x00, 0x11, 0x00, 0x00, 0x22,
+                0x33, 0x44, 0x55
+            ]
+        );
+    }
 }

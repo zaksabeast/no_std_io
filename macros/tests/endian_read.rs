@@ -110,7 +110,7 @@ fn should_error_if_there_are_not_enough_bytes() {
         result,
         Error::InvalidSize {
             wanted_size: 4,
-            offset: 0,
+            offset: 1,
             data_len: 4
         }
     );

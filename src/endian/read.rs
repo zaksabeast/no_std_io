@@ -372,6 +372,78 @@ impl EndianRead for i64 {
     }
 }
 
+impl EndianRead for f32 {
+    #[inline(always)]
+    fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let byte_count = mem::size_of::<f32>();
+        if byte_count > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: f32::from_le_bytes(bytes[..byte_count].try_into().unwrap()),
+            read_bytes: byte_count,
+        })
+    }
+
+    #[inline(always)]
+    fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let byte_count = mem::size_of::<f32>();
+        if byte_count > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: f32::from_be_bytes(bytes[..byte_count].try_into().unwrap()),
+            read_bytes: byte_count,
+        })
+    }
+}
+
+impl EndianRead for f64 {
+    #[inline(always)]
+    fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let byte_count = mem::size_of::<f64>();
+        if byte_count > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: f64::from_le_bytes(bytes[..byte_count].try_into().unwrap()),
+            read_bytes: byte_count,
+        })
+    }
+
+    #[inline(always)]
+    fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        let byte_count = mem::size_of::<f64>();
+        if byte_count > bytes.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: bytes.len(),
+            });
+        }
+
+        Ok(ReadOutput {
+            data: f64::from_be_bytes(bytes[..byte_count].try_into().unwrap()),
+            read_bytes: byte_count,
+        })
+    }
+}
+
 impl<const SIZE: usize> EndianRead for [u8; SIZE] {
     #[inline(always)]
     fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {

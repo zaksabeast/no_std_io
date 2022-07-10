@@ -385,6 +385,82 @@ impl EndianWrite for i64 {
     }
 }
 
+impl EndianWrite for f32 {
+    fn get_size(&self) -> usize {
+        mem::size_of::<Self>()
+    }
+
+    fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<f32>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = self.to_le_bytes();
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+
+    fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<f32>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = self.to_be_bytes();
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+}
+
+impl EndianWrite for f64 {
+    fn get_size(&self) -> usize {
+        mem::size_of::<Self>()
+    }
+
+    fn try_write_le(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<f64>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = self.to_le_bytes();
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+
+    fn try_write_be(&self, dst: &mut [u8]) -> Result<usize, Error> {
+        let byte_count = mem::size_of::<f64>();
+
+        if byte_count > dst.len() {
+            return Err(Error::InvalidSize {
+                wanted_size: byte_count,
+                offset: 0,
+                data_len: dst.len(),
+            });
+        }
+
+        let bytes = self.to_be_bytes();
+        dst[..byte_count].copy_from_slice(&bytes);
+        Ok(bytes.len())
+    }
+}
+
 impl<const SIZE: usize> EndianWrite for [u8; SIZE] {
     #[inline(always)]
     fn get_size(&self) -> usize {

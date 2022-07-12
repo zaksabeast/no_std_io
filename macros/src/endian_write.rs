@@ -8,13 +8,20 @@ use syn::{
 
 fn create_get_size_field(field: &Field) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
-    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
-        Some(MacroArgs { pad_before }) => pad_before,
-        _ => 0,
+    let (pad_before, backtrace) = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs {
+            pad_before,
+            backtrace,
+        }) => (
+            pad_before.unwrap_or_default(),
+            backtrace.unwrap_or_default(),
+        ),
+        _ => (0, 0),
     };
 
     quote! {
       size += #pad_before;
+      size -= #backtrace;
       size += ::no_std_io::EndianWrite::get_size(&self.#field_ident);
     }
 }
@@ -24,15 +31,36 @@ fn create_write_field(
     field_method: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
-    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
-        Some(MacroArgs { pad_before }) => {
-            quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+    let attributes = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs {
+            pad_before,
+            backtrace,
+        }) => {
+            let pad_before = if let Some(pad_before) = pad_before {
+                quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+            } else {
+                quote! {}
+            };
+
+            let backtrace = if let Some(backtrace) = backtrace {
+                quote! {
+                    let current_index = ::no_std_io::Cursor::get_index(&stream);
+                    ::no_std_io::Cursor::set_index(&mut stream, current_index - #backtrace);
+                }
+            } else {
+                quote! {}
+            };
+
+            quote! {
+                #backtrace
+                #pad_before
+            }
         }
         _ => quote! {},
     };
 
     quote! {
-      #pad_before
+      #attributes
       ::no_std_io::StreamWriter::#field_method(&mut stream, &self.#field_ident)?;
     }
 }

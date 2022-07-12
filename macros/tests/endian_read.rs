@@ -280,3 +280,113 @@ mod padding {
         assert_eq!(result, expected);
     }
 }
+
+mod backtrace {
+    use super::*;
+
+    #[derive(Debug, Default, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct NestedContainer<T: no_std_io::EndianRead + no_std_io::EndianWrite> {
+        first: u32,
+        data: T,
+    }
+
+    #[derive(Debug, PartialEq, no_std_io::EndianRead, no_std_io::EndianWrite)]
+    struct BacktraceTest {
+        first: u32,
+        #[no_std_io(backtrace = 1)]
+        second: u8,
+    }
+
+    #[test]
+    fn should_read_le() {
+        let bytes = vec![0xdd, 0xcc, 0xbb, 0xaa];
+        let result: BacktraceTest = bytes.read_le(0).expect("Read should have worked");
+        let expected = BacktraceTest {
+            first: 0xaabbccdd,
+            second: 0xaa,
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_be() {
+        let bytes = vec![0xaa, 0xbb, 0xcc, 0xdd];
+        let result: BacktraceTest = bytes.read_be(0).expect("Read should have worked");
+        let expected = BacktraceTest {
+            first: 0xaabbccdd,
+            second: 0xdd,
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_nested_le() {
+        let bytes = vec![0x44, 0x33, 0x22, 0x11, 0xdd, 0xcc, 0xbb, 0xaa];
+        let result: NestedContainer<BacktraceTest> =
+            bytes.read_le(0).expect("Read should have worked");
+        let expected = NestedContainer {
+            first: 0x11223344,
+            data: BacktraceTest {
+                first: 0xaabbccdd,
+                second: 0xaa,
+            },
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_nested_be() {
+        let bytes = vec![0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd];
+        let result: NestedContainer<BacktraceTest> =
+            bytes.read_be(0).expect("Read should have worked");
+        let expected = NestedContainer {
+            first: 0x11223344,
+            data: BacktraceTest {
+                first: 0xaabbccdd,
+                second: 0xdd,
+            },
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_dynamic_size_le() {
+        let bytes = vec![0x02, 0xdd, 0xcc, 0xbb, 0xaa, 0x44, 0x33, 0x22, 0x11];
+        let result: ListContainer<BacktraceTest> =
+            bytes.read_le(0).expect("Write should have worked");
+        let expected = ListContainer::<BacktraceTest>(vec![
+            BacktraceTest {
+                first: 0xaabbccdd,
+                second: 0xaa,
+            },
+            BacktraceTest {
+                first: 0x11223344,
+                second: 0x11,
+            },
+        ]);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn should_read_dynamic_size_be() {
+        let bytes = vec![0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x11, 0x22, 0x33, 0x44];
+        let result: ListContainer<BacktraceTest> =
+            bytes.read_be(0).expect("Write should have worked");
+        let expected = ListContainer::<BacktraceTest>(vec![
+            BacktraceTest {
+                first: 0xaabbccdd,
+                second: 0xdd,
+            },
+            BacktraceTest {
+                first: 0x11223344,
+                second: 0x44,
+            },
+        ]);
+        assert_eq!(result, expected);
+    }
+}

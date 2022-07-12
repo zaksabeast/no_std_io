@@ -3,7 +3,8 @@ use syn::Attribute;
 
 #[derive(Debug, FromMeta)]
 pub struct MacroArgs {
-    pub pad_before: usize,
+    pub pad_before: Option<usize>,
+    pub backtrace: Option<usize>,
 }
 
 impl MacroArgs {

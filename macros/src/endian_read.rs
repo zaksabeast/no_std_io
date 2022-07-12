@@ -12,15 +12,36 @@ fn create_field(
     field_method: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
-    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
-        Some(MacroArgs { pad_before }) => {
-            quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+    let attributes = match MacroArgs::from_attributes(&field.attrs) {
+        Some(MacroArgs {
+            pad_before,
+            backtrace,
+        }) => {
+            let pad_before = if let Some(pad_before) = pad_before {
+                quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
+            } else {
+                quote! {}
+            };
+
+            let backtrace = if let Some(backtrace) = backtrace {
+                quote! {
+                    let current_index = ::no_std_io::Cursor::get_index(&stream);
+                    ::no_std_io::Cursor::set_index(&mut stream, current_index - #backtrace);
+                }
+            } else {
+                quote! {}
+            };
+
+            quote! {
+                #backtrace
+                #pad_before
+            }
         }
         _ => quote! {},
     };
 
     quote! {
-        #pad_before
+        #attributes
         let #field_ident = ::no_std_io::StreamReader::#field_method(&mut stream)?;
     }
 }

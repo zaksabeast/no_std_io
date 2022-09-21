@@ -1,5 +1,5 @@
 use crate::Error;
-use core::mem;
+use core::{marker::PhantomData, mem};
 
 /// Defines a shared interface to write data to a source that is endian specific.
 ///
@@ -142,14 +142,34 @@ impl<const SIZE: usize> EndianWrite for [u8; SIZE] {
 }
 
 impl EndianWrite for () {
+    #[inline(always)]
     fn get_size(&self) -> usize {
         0
     }
 
+    #[inline(always)]
     fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
         Ok(0)
     }
 
+    #[inline(always)]
+    fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+        Ok(0)
+    }
+}
+
+impl<T: EndianWrite> EndianWrite for PhantomData<T> {
+    #[inline(always)]
+    fn get_size(&self) -> usize {
+        0
+    }
+
+    #[inline(always)]
+    fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+        Ok(0)
+    }
+
+    #[inline(always)]
     fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
         Ok(0)
     }

@@ -1,5 +1,5 @@
 use crate::Error;
-use core::{convert::TryInto, mem};
+use core::{convert::TryInto, marker::PhantomData, mem};
 
 /// The result of a read, including the value that was
 /// read and the number of bytes it consumed.
@@ -55,7 +55,7 @@ macro_rules! impl_endian_read {
                 #[inline(always)]
                 fn try_read_le(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
                     let byte_count = mem::size_of::<$i>();
-    
+
                     if byte_count > bytes.len() {
                         return Err(Error::InvalidSize {
                             wanted_size: byte_count,
@@ -63,17 +63,17 @@ macro_rules! impl_endian_read {
                             data_len: bytes.len(),
                         });
                     }
-            
+
                     Ok(ReadOutput {
                         data: <$i>::from_le_bytes(bytes[..byte_count].try_into().unwrap()),
                         read_bytes: byte_count,
                     })
                 }
-    
+
                 #[inline(always)]
                 fn try_read_be(bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
                     let byte_count = mem::size_of::<$i>();
-    
+
                     if byte_count > bytes.len() {
                         return Err(Error::InvalidSize {
                             wanted_size: byte_count,
@@ -81,7 +81,7 @@ macro_rules! impl_endian_read {
                             data_len: bytes.len(),
                         });
                     }
-    
+
                     Ok(ReadOutput {
                         data: <$i>::from_be_bytes(bytes[..byte_count].try_into().unwrap()),
                         read_bytes: byte_count,
@@ -149,11 +149,25 @@ impl<const SIZE: usize> EndianRead for [u8; SIZE] {
 }
 
 impl EndianRead for () {
+    #[inline(always)]
     fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         Ok(ReadOutput::new((), 0))
     }
 
+    #[inline(always)]
     fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
         Ok(ReadOutput::new((), 0))
+    }
+}
+
+impl<T: EndianRead> EndianRead for PhantomData<T> {
+    #[inline(always)]
+    fn try_read_le(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        Ok(ReadOutput::new(PhantomData, 0))
+    }
+
+    #[inline(always)]
+    fn try_read_be(_bytes: &[u8]) -> Result<ReadOutput<Self>, Error> {
+        Ok(ReadOutput::new(PhantomData, 0))
     }
 }

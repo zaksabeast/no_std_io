@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-#[derive(Debug, PartialEq, Snafu)]
+#[derive(Debug, PartialEq, Eq, Snafu)]
 pub enum Error {
     #[snafu(display(
         "Invalid size: wanted 0x{:x} at offset offset: 0x{:x}, but data length is 0x{:x} ",

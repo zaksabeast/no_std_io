@@ -3,7 +3,7 @@ use core::{convert::TryInto, marker::PhantomData, mem};
 
 /// The result of a read, including the value that was
 /// read and the number of bytes it consumed.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ReadOutput<T: Sized> {
     data: T,
     read_bytes: usize,

@@ -3,6 +3,7 @@ use super::{
     iter::{BeIter, LeIter},
 };
 use crate::{EndianRead, Reader, ReaderResult};
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use safe_transmute::TriviallyTransmutable;
 
@@ -55,6 +56,7 @@ pub trait StreamReader: Reader + Cursor + Sized {
     }
 
     /// Same as [Reader::read_byte_vec], but uses the current stream instead of an offset.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     fn read_byte_stream(&mut self, size: usize) -> ReaderResult<Vec<u8>> {
         let index = self.swap_incremented_index(size);
@@ -62,6 +64,7 @@ pub trait StreamReader: Reader + Cursor + Sized {
     }
 
     /// Same as [Reader::default_read_byte_vec], but returns a default value if the read is invalid.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     fn default_read_byte_stream(&mut self, size: usize) -> Vec<u8> {
         let index = self.swap_incremented_index(size);

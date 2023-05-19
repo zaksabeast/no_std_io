@@ -1,4 +1,5 @@
 use super::macro_args::MacroArgs;
+use darling::FromAttributes;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -8,7 +9,7 @@ use syn::{
 
 fn create_get_size_field(field: &Field) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
-    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
+    let pad_before = match MacroArgs::from_attributes(&field.attrs).ok() {
         Some(MacroArgs { pad_before }) => pad_before,
         _ => 0,
     };
@@ -24,7 +25,7 @@ fn create_write_field(
     field_method: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let field_ident = field.ident.as_ref().expect("Field should have identity");
-    let pad_before = match MacroArgs::from_attributes(&field.attrs) {
+    let pad_before = match MacroArgs::from_attributes(&field.attrs).ok() {
         Some(MacroArgs { pad_before }) => {
             quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
         }

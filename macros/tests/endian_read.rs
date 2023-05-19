@@ -5,6 +5,8 @@ use no_std_io::{Cursor, Error, ReadOutput, Reader, StreamContainer, StreamReader
 struct Test {
     first: u8,
     second: u32,
+    byte_array: [u8; 2],
+    array: [u16; 2],
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -72,11 +74,15 @@ struct TestContainer {
 
 #[test]
 fn should_read_le() {
-    let bytes: [u8; 5] = [0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+    let bytes: [u8; 11] = [
+        0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x11, 0x11, 0x11, 0x22, 0x33, 0x44,
+    ];
     let result: Test = bytes.read_le(0).expect("Read should have worked");
     let expected = Test {
         first: 0xaa,
         second: 0xeeddccbb,
+        byte_array: [0x11, 0x11],
+        array: [0x2211, 0x4433],
     };
 
     assert_eq!(result, expected);
@@ -84,11 +90,15 @@ fn should_read_le() {
 
 #[test]
 fn should_read_be() {
-    let bytes: [u8; 5] = [0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+    let bytes: [u8; 11] = [
+        0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x11, 0x11, 0x11, 0x22, 0x33, 0x44,
+    ];
     let result: Test = bytes.read_be(0).expect("Read should have worked");
     let expected = Test {
         first: 0xaa,
         second: 0xbbccddee,
+        byte_array: [0x11, 0x11],
+        array: [0x1122, 0x3344],
     };
 
     assert_eq!(result, expected);
@@ -131,13 +141,16 @@ fn should_read_dynamic_size_be() {
 #[test]
 fn should_read_nested_le() {
     let bytes = vec![
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x55, 0x66, 0x77, 0x88,
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x11, 0x11, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc,
+        0xdd, 0x55, 0x66, 0x77, 0x88,
     ];
     let result: TestContainer = bytes.read_le(0).expect("Read should have worked");
     let expected = TestContainer {
         test: Test {
             first: 0x00,
             second: 0x44332211,
+            byte_array: [0x11, 0x11],
+            array: [0x2211, 0x4433],
         },
         list: ListContainer(vec![0xddccbbaa, 0x88776655]),
     };
@@ -148,13 +161,16 @@ fn should_read_nested_le() {
 #[test]
 fn should_read_nested_be() {
     let bytes = vec![
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x55, 0x66, 0x77, 0x88,
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x11, 0x11, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc,
+        0xdd, 0x55, 0x66, 0x77, 0x88,
     ];
     let result: TestContainer = bytes.read_be(0).expect("Read should have worked");
     let expected = TestContainer {
         test: Test {
             first: 0x00,
             second: 0x11223344,
+            byte_array: [0x11, 0x11],
+            array: [0x1122, 0x3344],
         },
         list: ListContainer(vec![0xaabbccdd, 0x55667788]),
     };

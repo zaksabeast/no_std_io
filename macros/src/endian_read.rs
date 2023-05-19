@@ -1,11 +1,11 @@
 use super::macro_args::MacroArgs;
 use darling::FromAttributes;
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
-use quote::quote;
+use proc_macro2::{Ident, Span};
+use quote::{quote, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field,
-    Fields,
+    Fields, Type, TypeArray,
 };
 
 fn create_field(
@@ -18,6 +18,16 @@ fn create_field(
             quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
         }
         _ => quote! {},
+    };
+
+    let field_method = match &field.ty {
+        Type::Array(TypeArray { elem, .. }) if &elem.to_token_stream().to_string() != "u8" => {
+            syn::Ident::new(
+                &field_method.to_string().replace("read", "read_array"),
+                Span::call_site(),
+            )
+        }
+        _ => syn::Ident::new(&field_method.to_string(), Span::call_site()),
     };
 
     quote! {

@@ -132,6 +132,94 @@ pub trait Writer {
     fn checked_write_be<T: EndianWrite>(&mut self, offset: usize, value: &T) -> usize {
         self.write_be(offset, value).unwrap_or(0)
     }
+
+    /// Writes an array in its little endian representation.
+    ///
+    /// The array will be written fully or until an error is encountered. The error will contain
+    /// the offset at which the error was encountered while writing.
+    ///
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines little endian.
+    #[inline(always)]
+    fn write_array_le<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> WriterResult<usize> {
+        let mut write_size = 0;
+
+        for val in value {
+            self.write_le(offset + write_size, val)?;
+            write_size += val.get_size();
+        }
+
+        Ok(write_size)
+    }
+
+    /// Same as [Writer::write_array_le], but checks to make sure the bytes can safely be written to the offset.
+    /// Returns 0 as the write size if the bytes won't fit into the offset.
+    #[inline(always)]
+    fn checked_write_array_le<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> usize {
+        if value.is_empty() {
+            return 0;
+        }
+
+        let size = value[0].get_size() * SIZE;
+        let len = self.get_mut_slice().len();
+        if offset + size > len {
+            return 0;
+        }
+
+        self.write_array_le(offset, value).unwrap_or(0)
+    }
+
+    /// Writes an array in its big endian representation.
+    ///
+    /// The array will be written fully or until an error is encountered. The error will contain
+    /// the offset at which the error was encountered while writing.
+    ///
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines big endian.
+    #[inline(always)]
+    fn write_array_be<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> WriterResult<usize> {
+        let mut write_size = 0;
+
+        for val in value {
+            self.write_be(offset + write_size, val)?;
+            write_size += val.get_size();
+        }
+
+        Ok(write_size)
+    }
+
+    /// Same as [Writer::write_array_be], but checks to make sure the bytes can safely be written to the offset.
+    /// Returns 0 as the write size if the bytes won't fit into the offset.
+    #[inline(always)]
+    fn checked_write_array_be<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> usize {
+        if value.is_empty() {
+            return 0;
+        }
+
+        let size = value[0].get_size() * SIZE;
+        let len = self.get_mut_slice().len();
+        if offset + size > len {
+            return 0;
+        }
+
+        self.write_array_be(offset, value).unwrap_or(0)
+    }
 }
 
 impl<const SIZE: usize> Writer for [u8; SIZE] {
@@ -185,6 +273,58 @@ impl Writer for Vec<u8> {
             offset,
             self.get_mut_slice().len(),
         )
+    }
+
+    #[inline(always)]
+    fn write_array_le<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> WriterResult<usize> {
+        if value.is_empty() {
+            return Ok(0);
+        }
+        let offset_end = offset + value[0].get_size() * SIZE;
+        let self_len = self.len();
+
+        if offset_end > self_len {
+            self.resize(offset_end, 0);
+        }
+
+        let mut write_size = 0;
+
+        for val in value {
+            self.write_le(offset + write_size, val)?;
+            write_size += val.get_size();
+        }
+
+        Ok(write_size)
+    }
+
+    #[inline(always)]
+    fn write_array_be<const SIZE: usize, T: EndianWrite>(
+        &mut self,
+        offset: usize,
+        value: &[T; SIZE],
+    ) -> WriterResult<usize> {
+        if value.is_empty() {
+            return Ok(0);
+        }
+        let offset_end = offset + value[0].get_size() * SIZE;
+        let self_len = self.len();
+
+        if offset_end > self_len {
+            self.resize(offset_end, 0);
+        }
+
+        let mut write_size = 0;
+
+        for val in value {
+            self.write_be(offset + write_size, val)?;
+            write_size += val.get_size();
+        }
+
+        Ok(write_size)
     }
 
     #[inline(always)]
@@ -900,6 +1040,378 @@ mod test {
             let mut writer = MockWriter::new(bytes.clone());
             let value = 0xaabbccddu32;
             let written_length = writer.checked_write_be(6, &value);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), bytes);
+        }
+    }
+
+    mod write_array_le {
+        use super::*;
+        use alloc::vec;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_le(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_le::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let error = writer
+                .write_array_le(6, &value)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 2,
+                    offset: 8,
+                    data_len: 8,
+                }
+            );
+        }
+
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer = vec![];
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_le(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_le::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+            assert_eq!(writer.len(), 8);
+        }
+
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer = vec![0; 6];
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_le(0, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_le::<3, u16>(0)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[derive(Debug)]
+        struct CustomErrorTest(u32);
+
+        impl EndianWrite for CustomErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_vec() {
+            let value = [CustomErrorTest(0)];
+            let mut bytes = vec![];
+            let result = bytes.write_array_le(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_slice() {
+            let value = [CustomErrorTest(0)];
+            let bytes = &mut [];
+            let result = bytes.write_array_le(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianWrite for OffsetErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_vec() {
+            let value = [OffsetErrorTest(0)];
+            let mut bytes = vec![];
+            let result = bytes.write_array_le(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 2,
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_slice() {
+            let value = [OffsetErrorTest(0)];
+            let bytes = &mut [];
+            let result = bytes.write_array_le(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
+            };
+            assert_eq!(result, expected)
+        }
+    }
+
+    mod checked_write_array_le {
+        use super::*;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer.checked_write_array_le(2, &value);
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_le::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(bytes.clone());
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer.checked_write_array_le(6, &value);
+
+            assert_eq!(written_length, 0);
+            assert_eq!(writer.get_bytes(), bytes);
+        }
+    }
+
+    mod write_array_be {
+        use super::*;
+        use alloc::vec;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_be(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_be::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let error = writer
+                .write_array_be(6, &value)
+                .expect_err("Length should have been too large");
+
+            assert_eq!(
+                error,
+                Error::InvalidSize {
+                    wanted_size: 2,
+                    offset: 8,
+                    data_len: 8,
+                }
+            );
+        }
+
+        #[test]
+        fn should_grow_a_vector_if_needed() {
+            let mut writer = vec![];
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_be(2, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_be::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+            assert_eq!(writer.len(), 8);
+        }
+
+        #[test]
+        fn should_not_grow_a_vector_if_not_needed() {
+            let mut writer = vec![0; 6];
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer
+                .write_array_be(0, &value)
+                .expect("Write should have succeeded");
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_be::<3, u16>(0)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+            assert_eq!(writer.len(), 6);
+        }
+
+        #[derive(Debug)]
+        struct CustomErrorTest(u32);
+
+        impl EndianWrite for CustomErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidRead {
+                    message: "Custom error!",
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_vec() {
+            let value = [CustomErrorTest(0)];
+            let mut bytes = vec![];
+            let result = bytes.write_array_be(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_custom_errors_for_slice() {
+            let value = [CustomErrorTest(0)];
+            let bytes = &mut [];
+            let result = bytes.write_array_be(0, &value).unwrap_err();
+            let expected = Error::InvalidRead {
+                message: "Custom error!",
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[derive(Debug)]
+        struct OffsetErrorTest(u32);
+
+        impl EndianWrite for OffsetErrorTest {
+            fn get_size(&self) -> usize {
+                0
+            }
+            fn try_write_le(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                unimplemented!()
+            }
+            fn try_write_be(&self, _dst: &mut [u8]) -> Result<usize, Error> {
+                Err(Error::InvalidSize {
+                    wanted_size: 8,
+                    offset: 1,
+                    data_len: 0,
+                })
+            }
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_vec() {
+            let value = [OffsetErrorTest(0)];
+            let mut bytes = vec![];
+            let result = bytes.write_array_be(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 2,
+            };
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn should_bubble_up_error_offsets_for_slice() {
+            let value = [OffsetErrorTest(0)];
+            let bytes = &mut [];
+            let result = bytes.write_array_be(2, &value).unwrap_err();
+            let expected = Error::InvalidSize {
+                wanted_size: 8,
+                offset: 3,
+                data_len: 0,
+            };
+            assert_eq!(result, expected)
+        }
+    }
+
+    mod checked_write_array_be {
+        use super::*;
+
+        #[test]
+        fn should_write_value() {
+            let mut writer = MockWriter::new([1, 2, 3, 4, 5, 6, 7, 8]);
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer.checked_write_array_be(2, &value);
+
+            assert_eq!(written_length, 6);
+
+            let result = writer
+                .read_array_be::<3, u16>(2)
+                .expect("Read should have succeeded");
+            assert_eq!(result, [0x1122u16, 0x3344, 0x5566]);
+        }
+
+        #[test]
+        fn should_return_0_if_size_is_too_large_for_offset() {
+            let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+            let mut writer = MockWriter::new(bytes.clone());
+            let value = [0x1122u16, 0x3344, 0x5566];
+            let written_length = writer.checked_write_array_be(6, &value);
 
             assert_eq!(written_length, 0);
             assert_eq!(writer.get_bytes(), bytes);

@@ -44,15 +44,15 @@ pub trait StreamWriter: Writer + Cursor {
         let mut write_size = 0;
 
         for val in value {
-            self.write_le(index + write_size, val)?;
-            self.increment_by(val.get_size());
-            write_size += val.get_size();
+            let bytes_written = self.write_le(index + write_size, val)?;
+            self.increment_by(bytes_written);
+            write_size += bytes_written;
         }
 
         Ok(write_size)
     }
 
-    /// Same as [StreamWriter::write_stream_be], but does not write if there is not enough space.
+    /// Same as [StreamWriter::write_stream_le], but does not write if there is not enough space.
     #[inline(always)]
     fn checked_write_array_stream_le<const SIZE: usize, T: EndianWrite>(
         &mut self,
@@ -88,7 +88,7 @@ pub trait StreamWriter: Writer + Cursor {
         self.checked_write_be(index, value)
     }
 
-    /// Same as [Writer::write_array_le], but uses the current stream instead of an offset.
+    /// Same as [Writer::write_array_be], but uses the current stream instead of an offset.
     #[inline(always)]
     fn write_array_stream_be<const SIZE: usize, T: EndianWrite>(
         &mut self,

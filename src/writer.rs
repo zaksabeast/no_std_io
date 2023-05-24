@@ -168,7 +168,7 @@ pub trait Writer {
             return 0;
         }
 
-        let size = value[0].get_size() * SIZE;
+        let size = value.iter().map(|val| val.get_size()).sum::<usize>();
         let len = self.get_mut_slice().len();
         if offset + size > len {
             return 0;
@@ -212,7 +212,7 @@ pub trait Writer {
             return 0;
         }
 
-        let size = value[0].get_size() * SIZE;
+        let size = value.iter().map(|val| val.get_size()).sum::<usize>();
         let len = self.get_mut_slice().len();
         if offset + size > len {
             return 0;
@@ -284,7 +284,7 @@ impl Writer for Vec<u8> {
         if value.is_empty() {
             return Ok(0);
         }
-        let offset_end = offset + value[0].get_size() * SIZE;
+        let offset_end = value.iter().map(|val| val.get_size()).sum::<usize>() + offset;
         let self_len = self.len();
 
         if offset_end > self_len {
@@ -310,7 +310,7 @@ impl Writer for Vec<u8> {
         if value.is_empty() {
             return Ok(0);
         }
-        let offset_end = offset + value[0].get_size() * SIZE;
+        let offset_end = value.iter().map(|val| val.get_size()).sum::<usize>() + offset;
         let self_len = self.len();
 
         if offset_end > self_len {

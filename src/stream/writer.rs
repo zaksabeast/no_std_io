@@ -44,9 +44,10 @@ pub trait StreamWriter: Writer + Cursor {
         let mut write_size = 0;
 
         for val in value {
-            let bytes_written = self.write_le(index + write_size, val)?;
-            self.increment_by(bytes_written);
-            write_size += bytes_written;
+            self.write_le(index + write_size, val)?;
+            let size = val.get_size();
+            self.increment_by(size);
+            write_size += size;
         }
 
         Ok(write_size)
@@ -63,7 +64,7 @@ pub trait StreamWriter: Writer + Cursor {
             return 0;
         }
 
-        let size = value[0].get_size() * SIZE;
+        let size = value.iter().map(|val| val.get_size()).sum::<usize>();
         let len = self.get_mut_slice().len();
         if index + size > len {
             return 0;
@@ -99,8 +100,9 @@ pub trait StreamWriter: Writer + Cursor {
 
         for val in value {
             self.write_be(index + write_size, val)?;
-            self.increment_by(val.get_size());
-            write_size += val.get_size();
+            let size = val.get_size();
+            self.increment_by(size);
+            write_size += size;
         }
 
         Ok(write_size)
@@ -117,7 +119,7 @@ pub trait StreamWriter: Writer + Cursor {
             return 0;
         }
 
-        let size = value[0].get_size() * SIZE;
+        let size = value.iter().map(|val| val.get_size()).sum::<usize>();
         let len = self.get_mut_slice().len();
         if index + size > len {
             return 0;

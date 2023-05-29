@@ -175,6 +175,72 @@ pub trait Reader {
         self.read_byte_vec(offset, size)
             .unwrap_or_else(|_| vec![0; size])
     }
+
+    /// Reads a array from its little endian representation.
+    ///
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines little endian.
+    fn read_array_le<const SIZE: usize, T: EndianRead>(
+        &self,
+        mut offset: usize,
+    ) -> ReaderResult<[T; SIZE]> {
+        let mut data: [Option<T>; SIZE] = core::array::from_fn(|_| None);
+
+        for elem in &mut data {
+            let read_output = self.read_le_with_output::<T>(offset)?;
+            offset += read_output.get_read_bytes();
+            *elem = Some(read_output.into_data());
+        }
+
+        // Safety
+        // [T]::map has a hard time optimizing, Option::unwrap_unchecked here can help
+        // get rid of panic checks since we know all elements are initialized
+        Ok(data.map(|elem| unsafe { elem.unwrap_unchecked() }))
+    }
+
+    /// Same as [Reader::read_array_le], but returns a default
+    /// array if the read is invalid.
+    fn default_read_array_le<const SIZE: usize, T: EndianRead + Default>(
+        &self,
+        offset: usize,
+    ) -> [T; SIZE] {
+        // using core::array::from_fn() helps bypass the size limit of default arrays
+        self.read_array_le(offset)
+            .unwrap_or(core::array::from_fn(|_| T::default()))
+    }
+
+    /// Reads a array from its big endian representation.
+    ///
+    /// This should only be used when reading data from a format or protocol
+    /// that explicitly defines big endian.
+    fn read_array_be<const SIZE: usize, T: EndianRead>(
+        &self,
+        mut offset: usize,
+    ) -> ReaderResult<[T; SIZE]> {
+        let mut data: [Option<T>; SIZE] = core::array::from_fn(|_| None);
+
+        for elem in &mut data {
+            let read_output = self.read_be_with_output::<T>(offset)?;
+            offset += read_output.get_read_bytes();
+            *elem = Some(read_output.into_data());
+        }
+
+        // Safety
+        // [T]::map has a hard time optimizing, Option::unwrap_unchecked here can help
+        // get rid of panic checks since we know all elements are initialized
+        Ok(data.map(|elem| unsafe { elem.unwrap_unchecked() }))
+    }
+
+    /// Same as [Reader::read_array_be], but returns a default
+    /// array if the read is invalid.
+    fn default_read_array_be<const SIZE: usize, T: EndianRead + Default>(
+        &self,
+        offset: usize,
+    ) -> [T; SIZE] {
+        // using core::array::from_fn() helps bypass the size limit of default arrays
+        self.read_array_be(offset)
+            .unwrap_or(core::array::from_fn(|_| T::default()))
+    }
 }
 
 impl<const SIZE: usize> Reader for [u8; SIZE] {
@@ -707,6 +773,102 @@ mod test {
             let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
             let value = reader.default_read_byte_vec(6, 4);
             assert_eq!(value, vec![0, 0, 0, 0]);
+        }
+    }
+
+    mod read_array_le {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value: [u16; 4] = reader
+                .read_array_le(0)
+                .expect("Should have been successful");
+            assert_eq!(value, [0x2211, 0x4433, 0xbbaa, 0xddcc]);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_array_le::<4, u16>(6)
+                .expect_err("Length should have been too large");
+            assert_eq!(
+                value,
+                Error::InvalidSize {
+                    wanted_size: 2,
+                    offset: 8,
+                    data_len: 8,
+                }
+            );
+        }
+    }
+
+    mod default_read_array_le {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value: [u16; 4] = reader.default_read_array_le(0);
+            assert_eq!(value, [0x2211, 0x4433, 0xbbaa, 0xddcc]);
+        }
+
+        #[test]
+        fn should_return_default_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_array_le::<4, u16>(6);
+
+            assert_eq!(value, [0, 0, 0, 0]);
+        }
+    }
+
+    mod read_array_be {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value: [u16; 4] = reader
+                .read_array_be(0)
+                .expect("Should have been successful");
+            assert_eq!(value, [0x1122, 0x3344, 0xaabb, 0xccdd]);
+        }
+
+        #[test]
+        fn should_return_error_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader
+                .read_array_be::<4, u16>(6)
+                .expect_err("Length should have been too large");
+            assert_eq!(
+                value,
+                Error::InvalidSize {
+                    wanted_size: 2,
+                    offset: 8,
+                    data_len: 8,
+                }
+            );
+        }
+    }
+
+    mod default_read_array_be {
+        use super::*;
+
+        #[test]
+        fn should_return_a_value() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value: [u16; 4] = reader.default_read_array_be(0);
+            assert_eq!(value, [0x1122, 0x3344, 0xaabb, 0xccdd]);
+        }
+
+        #[test]
+        fn should_return_default_if_size_is_too_large_for_offset() {
+            let reader = MockReader::new([0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd]);
+            let value = reader.default_read_array_be::<4, u16>(6);
+
+            assert_eq!(value, [0, 0, 0, 0]);
         }
     }
 }

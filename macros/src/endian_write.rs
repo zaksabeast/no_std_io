@@ -1,10 +1,11 @@
 use super::macro_args::MacroArgs;
 use darling::FromAttributes;
 use proc_macro::TokenStream;
-use quote::quote;
+use proc_macro2::Span;
+use quote::{quote, ToTokens};
 use syn::{
     self, parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput,
-    Field, Fields,
+    Field, Fields, Type, TypeArray,
 };
 
 fn create_get_size_field(field: &Field) -> proc_macro2::TokenStream {
@@ -14,9 +15,24 @@ fn create_get_size_field(field: &Field) -> proc_macro2::TokenStream {
         _ => 0,
     };
 
+    let field_size = match &field.ty {
+        Type::Array(TypeArray { elem, .. }) if &elem.to_token_stream().to_string() != "u8" => {
+            quote! {
+                for val in &self.#field_ident {
+                    size += ::no_std_io::EndianWrite::get_size(val);
+                }
+            }
+        }
+        _ => {
+            quote! {
+                size += ::no_std_io::EndianWrite::get_size(&self.#field_ident);
+            }
+        }
+    };
+
     quote! {
-      size += #pad_before;
-      size += ::no_std_io::EndianWrite::get_size(&self.#field_ident);
+        size += #pad_before;
+        #field_size
     }
 }
 
@@ -30,6 +46,16 @@ fn create_write_field(
             quote! { ::no_std_io::Cursor::increment_by(&mut stream, #pad_before); }
         }
         _ => quote! {},
+    };
+
+    let field_method = match &field.ty {
+        Type::Array(TypeArray { elem, .. }) if &elem.to_token_stream().to_string() != "u8" => {
+            syn::Ident::new(
+                &field_method.to_string().replace("write", "write_array"),
+                Span::call_site(),
+            )
+        }
+        _ => syn::Ident::new(&field_method.to_string(), Span::call_site()),
     };
 
     quote! {

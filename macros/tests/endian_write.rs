@@ -5,6 +5,7 @@ use no_std_io::{Cursor, Error, StreamContainer, StreamWriter, Writer};
 struct Test {
     first: u8,
     second: u32,
+    array: [u16; 2],
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -78,12 +79,16 @@ fn should_write_le() {
     let value = Test {
         first: 0xaa,
         second: 0xeeddccbb,
+        array: [0x1122, 0x3344],
     };
-    let mut bytes = vec![0; 5];
+    let mut bytes = vec![0; 9];
     let result = bytes.write_le(0, &value).expect("Write should have worked");
 
-    assert_eq!(result, 5);
-    assert_eq!(bytes, [0xaa, 0xbb, 0xcc, 0xdd, 0xee]);
+    assert_eq!(result, 9);
+    assert_eq!(
+        bytes,
+        [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x22, 0x11, 0x44, 0x33]
+    );
 }
 
 #[test]
@@ -91,12 +96,16 @@ fn should_write_be() {
     let value = Test {
         first: 0xaa,
         second: 0xbbccddee,
+        array: [0x1122, 0x3344],
     };
-    let mut bytes = vec![0; 5];
+    let mut bytes = vec![0; 9];
     let result = bytes.write_be(0, &value).expect("Write should have worked");
 
-    assert_eq!(result, 5);
-    assert_eq!(bytes, [0xaa, 0xbb, 0xcc, 0xdd, 0xee]);
+    assert_eq!(result, 9);
+    assert_eq!(
+        bytes,
+        [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x11, 0x22, 0x33, 0x44]
+    );
 }
 
 #[test]
@@ -104,6 +113,7 @@ fn should_error_if_there_are_not_enough_bytes() {
     let value = Test {
         first: 0xaa,
         second: 0xeeddccbb,
+        array: [0x1122, 0x3344],
     };
     let mut bytes: [u8; 4] = [0; 4];
     let result = bytes
@@ -152,16 +162,20 @@ fn should_write_nested_le() {
         test: Test {
             first: 0x00,
             second: 0x44332211,
+            array: [0x1122, 0x3344],
         },
         list: ListContainer(vec![0xddccbbaa, 0x88776655]),
     };
     let mut bytes = vec![];
     let result = bytes.write_le(0, &value).expect("Write should have worked");
 
-    assert_eq!(result, 14);
+    assert_eq!(result, 18);
     assert_eq!(
         bytes,
-        [0x00, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x55, 0x66, 0x77, 0x88,]
+        [
+            0x00, 0x11, 0x22, 0x33, 0x44, 0x22, 0x11, 0x44, 0x33, 0x02, 0xaa, 0xbb, 0xcc, 0xdd,
+            0x55, 0x66, 0x77, 0x88,
+        ]
     )
 }
 
@@ -171,16 +185,20 @@ fn should_write_nested_be() {
         test: Test {
             first: 0x00,
             second: 0x11223344,
+            array: [0x1122, 0x3344],
         },
         list: ListContainer(vec![0xaabbccdd, 0x55667788]),
     };
     let mut bytes = vec![];
     let result = bytes.write_be(0, &value).expect("Write should have worked");
 
-    assert_eq!(result, 14);
+    assert_eq!(result, 18);
     assert_eq!(
         bytes,
-        [0x00, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd, 0x55, 0x66, 0x77, 0x88,]
+        [
+            0x00, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x02, 0xaa, 0xbb, 0xcc, 0xdd,
+            0x55, 0x66, 0x77, 0x88,
+        ]
     )
 }
 
